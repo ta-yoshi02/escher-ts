@@ -3,6 +3,9 @@
 TypeScript 実装のプログラム合成器です。  
 現在は **JSON で定義した合成タスク** を `TypedEscher` / `AscendRec` の両エンジンで実行できます。
 
+元リポジトリ（Scala 実装）:  
+https://github.com/MrVPlusOne/Escher-Scala
+
 ## クイックスタート
 
 ```bash

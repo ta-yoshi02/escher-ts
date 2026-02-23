@@ -14,6 +14,50 @@ pnpm run typecheck
 pnpm test:run
 ```
 
+## Web アプリ (GitHub Pages 対応)
+
+`web/` 配下に、ブラウザで合成を実行できる UI を追加しています。
+
+```bash
+# 開発サーバ
+pnpm run web:dev
+
+# 静的ビルド (web/dist)
+pnpm run web:build
+
+# ビルド確認
+pnpm run web:preview
+```
+
+機能:
+
+- 個別ベンチマークを選択してその場で実行
+- `pure` / `classes` suite の一括実行
+- 実行結果のテーブル表示と SVG ランタイムグラフ表示
+
+`web/vite.config.ts` は `base: "./"` を使っているため、`web/dist` をそのまま GitHub Pages に配置できます。
+
+### GitHub Pages 手動公開（自動デプロイなし）
+
+1. GitHub 側設定
+   - Repository Settings → Pages → Source を `Deploy from a branch` にする
+   - Branch を `gh-pages` / `/ (root)` に設定
+
+2. 公開（1コマンド）
+
+```bash
+pnpm run deploy:pages
+```
+
+実行内容:
+
+```bash
+pnpm run build:pages
+pnpm dlx gh-pages -d web/dist
+```
+
+公開 URL は通常 `https://<GitHubユーザー名>.github.io/<リポジトリ名>/` です。
+
 ## 実行コマンド
 
 ```bash

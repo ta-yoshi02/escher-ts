@@ -12,6 +12,8 @@
   - unit / integration テスト
 - `docs/`
   - 運用ドキュメント
+- `web/`
+  - GitHub Pages 向けのブラウザ UI（Vite）
 - `outputs/`
   - ベンチマーク生成物（SVG/CSV/MD）
 - `scripts/`

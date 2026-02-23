@@ -17,6 +17,7 @@ export interface BenchmarkSynthConfig {
   searchSizeFactor: number;
   deleteAllErr: boolean;
   timeoutMs: number | null;
+  enforceDecreasingMeasure?: boolean;
   useReductionRules?: boolean;
   maxReboots?: number | null;
   goalSearchStrategy?: "then-first" | "cond-first";
@@ -75,6 +76,7 @@ export const defaultBenchmarkRunOptions = (): BenchmarkRunOptions => ({
     goalSearchStrategy: "then-first",
     deleteAllErr: true,
     timeoutMs: 1000,
+    enforceDecreasingMeasure: true,
   },
 });
 
@@ -85,6 +87,7 @@ export const defaultAscendRecBenchmarkRunOptions = (): BenchmarkRunOptions => ({
     searchSizeFactor: 3,
     deleteAllErr: true,
     timeoutMs: 1000,
+    enforceDecreasingMeasure: true,
     useReductionRules: true,
     onlyForwardSearch: false,
   },
@@ -109,7 +112,7 @@ const executionContextForEngine = (
   effectiveConfig: BenchmarkSynthConfig,
 ): BenchmarkExecutionContext => ({
   benchmark,
-  effectiveConfig,
+  effectiveConfig: { ...effectiveConfig, ...(benchmark.synthConfigOverride ?? {}) },
   envForEngine: engine === "ascendrec" ? (benchmark.ascendRecEnv ?? benchmark.env) : benchmark.env,
   examplesForEngine: engine === "ascendrec" ? (benchmark.ascendRecExamples ?? benchmark.examples) : benchmark.examples,
 });
@@ -122,6 +125,7 @@ const runTypedEscherBenchmarkCase = (ctx: BenchmarkExecutionContext): BenchmarkE
     goalSearchStrategy: ctx.effectiveConfig.goalSearchStrategy ?? "then-first",
     deleteAllErr: ctx.effectiveConfig.deleteAllErr,
     timeoutMs: ctx.effectiveConfig.timeoutMs,
+    enforceDecreasingMeasure: ctx.effectiveConfig.enforceDecreasingMeasure ?? true,
   };
   const synth = new TypedEscherSynthesizer(typedConfig);
   const result = synth.synthesize(
@@ -150,6 +154,7 @@ const runAscendRecBenchmarkCase = (ctx: BenchmarkExecutionContext): BenchmarkExe
     searchSizeFactor: ctx.effectiveConfig.searchSizeFactor,
     deleteAllErr: ctx.effectiveConfig.deleteAllErr,
     timeoutMs: ctx.effectiveConfig.timeoutMs,
+    enforceDecreasingMeasure: ctx.effectiveConfig.enforceDecreasingMeasure ?? true,
     useReductionRules: ctx.effectiveConfig.useReductionRules ?? true,
     onlyForwardSearch: ctx.effectiveConfig.onlyForwardSearch ?? false,
     onDiagnostics: (d) => {

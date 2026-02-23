@@ -3,6 +3,7 @@ import {
   tyBool,
   tyInt,
   tyList,
+  tyRef,
   tyPair,
   typeVar,
 } from "../types/type.js";
@@ -20,6 +21,7 @@ import {
   asBool,
   asInt,
   asList,
+  asRef,
   associativeRight,
   commutative2,
   noDirectChildren,
@@ -39,6 +41,12 @@ export const isZero = new ComponentImpl("isZero", [tyInt], tyBool, (args) => {
 export const isNonNeg = new ComponentImpl("isNonNeg", [tyInt], tyBool, (args) => {
   const n = asInt(args[0]!);
   return n === null ? valueError : valueBool(n >= 0);
+});
+
+// In reference-labeled heap encodings, -1 is treated as null reference.
+export const isNull = new ComponentImpl("isNull", [tyRef(typeVar(0))], tyBool, (args) => {
+  const n = asRef(args[0]!);
+  return n === null ? valueError : valueBool(n === -1);
 });
 
 export const zero = new ComponentImpl("zero", [], tyInt, () => valueInt(0));
@@ -185,6 +193,7 @@ export const standardListComponents = [
   isNil,
   isZero,
   isNonNeg,
+  isNull,
   zero,
   inc,
   dec,

@@ -1,0 +1,21 @@
+{
+  "benchmarks": [
+    "reverse",
+    "length",
+    "compress",
+    "stutter",
+    "squareList",
+    "insert",
+    "lastInList",
+    "cartesian",
+    "fib",
+    "sumUnder",
+    "dropLast",
+    "evens",
+    "shiftLeft",
+    "maxInList",
+    "flattenTree",
+    "tConcat",
+    "nodesAtLevel"
+  ]
+}

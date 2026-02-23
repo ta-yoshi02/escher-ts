@@ -4,11 +4,14 @@ import type { BenchmarkEngine, BenchmarkRunHooks, BenchmarkRunReport } from "../
 import { formatBenchmarkProgramPairs, formatBenchmarkReport } from "../benchmarks/report-formatters.js";
 import { benchmarkReportToCsv, benchmarkReportToSvg } from "../benchmarks/report-chart.js";
 import {
-  paperExamplesBenchmarks,
+  classBenchmarks,
+  classExamplesBenchmarks,
+  pureBenchmarks,
+  pureExamplesBenchmarks,
   standardListBenchmarks,
 } from "../benchmarks/typed-escher-benchmarks.js";
 
-export type BenchmarkSuite = "standard" | "paper";
+export type BenchmarkSuite = "standard" | "pure" | "classes";
 export type GoalSearchStrategy = "then-first" | "cond-first";
 export type SharedCliParsedValues = {
   svg?: string;
@@ -28,7 +31,21 @@ export const parseNumber = (value: string | undefined, fallback: number): number
 export const parseStrategy = (value: string | undefined): GoalSearchStrategy =>
   value === "cond-first" ? "cond-first" : "then-first";
 
-export const parseSuite = (value: string | undefined): BenchmarkSuite => (value === "paper" ? "paper" : "standard");
+export const parseSuite = (value: string | undefined): BenchmarkSuite => {
+  if (value === undefined) {
+    return "standard";
+  }
+  if (value === "pure") {
+    return "pure";
+  }
+  if (value === "classes") {
+    return "classes";
+  }
+  if (value === "standard") {
+    return "standard";
+  }
+  throw new Error(`Unknown suite '${value}'. Expected one of: standard, pure, classes`);
+};
 
 export const normalizeCliArgs = (argv: readonly string[]): string[] => (argv[0] === "--" ? argv.slice(1) : [...argv]);
 
@@ -45,9 +62,14 @@ export const defaultCsvPath = (engine: "typed-escher" | "ascendrec", suite: Benc
   `${outputBase(engine, suite)}-runtime.csv`;
 
 export const selectBenchmarks = (suite: BenchmarkSuite, namesRaw: string | undefined) => {
-  const pool = suite === "paper" ? paperExamplesBenchmarks : standardListBenchmarks;
+  const pool =
+    suite === "pure"
+      ? pureBenchmarks
+      : suite === "classes"
+        ? classExamplesBenchmarks
+        : standardListBenchmarks;
   if (namesRaw === undefined || namesRaw.trim() === "") {
-    return pool;
+    return suite === "classes" ? classBenchmarks : pool;
   }
 
   const names = new Set(namesRaw.split(",").map((s) => s.trim()).filter((s) => s.length > 0));

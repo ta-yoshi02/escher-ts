@@ -22,7 +22,7 @@ export const benchmarkReportToSvg = (report: BenchmarkRunReport): string => {
   const chartWidth = width - marginLeft - marginRight;
   const chartHeight = height - marginTop - marginBottom;
 
-  const categoryOrder = ["lists", "integers", "trees"] as const;
+  const categoryOrder = ["lists", "integers", "trees", "classes"] as const;
   const groups = categoryOrder
     .map((category) => ({ category, rows: report.cases.filter((c) => c.category === category) }))
     .filter((g) => g.rows.length > 0);
@@ -34,6 +34,8 @@ export const benchmarkReportToSvg = (report: BenchmarkRunReport): string => {
         return "Integers";
       case "trees":
         return "Trees";
+      case "classes":
+        return "Classes";
     }
   };
 

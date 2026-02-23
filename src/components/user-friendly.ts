@@ -1,5 +1,5 @@
 import { defineComponents, type ArgList, type ComponentDefinition, type ComponentImpl } from "./component.js";
-import { tyBool, tyInt, tyList, tyObject, tyPair, tyTree, type Type } from "../types/type.js";
+import { tyBool, tyInt, tyList, tyObject, tyPair, tyRef, tyTree, type Type } from "../types/type.js";
 import {
   binaryLeaf,
   binaryNode,
@@ -11,11 +11,16 @@ import {
   valueList,
   valueObject,
   valuePair,
+  valueRef,
   valueTree,
 } from "../types/value.js";
 
 export interface UserPairLiteral {
   readonly pair: readonly [UserLiteral, UserLiteral];
+}
+
+export interface UserRefLiteral {
+  readonly ref: number;
 }
 
 export interface UserErrorLiteral {
@@ -47,6 +52,7 @@ export type UserLiteral =
   | boolean
   | readonly UserLiteral[]
   | UserPairLiteral
+  | UserRefLiteral
   | UserTreeLiteral
   | UserObjectLiteral
   | UserErrorLiteral;
@@ -55,6 +61,8 @@ const isNumber = (value: TermValue): value is ReturnType<typeof valueInt> => val
 const isBool = (value: TermValue): value is ReturnType<typeof valueBool> => value.tag === "bool";
 const isPairLiteral = (literal: UserLiteral): literal is UserPairLiteral =>
   typeof literal === "object" && literal !== null && "pair" in literal;
+const isRefLiteral = (literal: UserLiteral): literal is UserRefLiteral =>
+  typeof literal === "object" && literal !== null && "ref" in literal;
 const isTreeLiteral = (literal: UserLiteral): literal is UserTreeLiteral =>
   typeof literal === "object" && literal !== null && "tree" in literal;
 const isObjectLiteral = (literal: UserLiteral): literal is UserObjectLiteral =>
@@ -63,6 +71,7 @@ const isErrorLiteral = (literal: UserLiteral): literal is UserErrorLiteral =>
   typeof literal === "object" && literal !== null && "error" in literal;
 
 export const pairLit = (left: UserLiteral, right: UserLiteral): UserPairLiteral => ({ pair: [left, right] });
+export const refLit = (label: number): UserRefLiteral => ({ ref: label });
 export const errorLit = (): UserErrorLiteral => ({ error: true });
 export const leafLit = (): UserTreeLeafLiteral => ({ tree: "leaf" });
 export const nodeLit = (value: UserLiteral, left: UserTreeLiteral, right: UserTreeLiteral): UserTreeNodeLiteral => ({
@@ -96,6 +105,9 @@ export const literalToValue = (literal: UserLiteral): TermValue => {
   if (isPairLiteral(literal)) {
     return valuePair(literalToValue(literal.pair[0]), literalToValue(literal.pair[1]));
   }
+  if (isRefLiteral(literal)) {
+    return valueRef(literal.ref);
+  }
   if (isObjectLiteral(literal)) {
     const fields = Object.fromEntries(
       Object.entries(literal.object.fields).map(([name, value]) => [name, literalToValue(value)] as const),
@@ -124,6 +136,8 @@ export const valueToLiteral = (value: TermValue): UserLiteral | null => {
       return errorLit();
     case "int":
       return value.value;
+    case "ref":
+      return refLit(value.value);
     case "bool":
       return value.value;
     case "list": {
@@ -233,6 +247,9 @@ export const inferLiteralType = (literal: UserLiteral): Type => {
   }
   if (isPairLiteral(literal)) {
     return tyPair(inferLiteralType(literal.pair[0]), inferLiteralType(literal.pair[1]));
+  }
+  if (isRefLiteral(literal)) {
+    return tyRef(tyInt);
   }
   if (isTreeLiteral(literal)) {
     if (literal.tree === "leaf") {

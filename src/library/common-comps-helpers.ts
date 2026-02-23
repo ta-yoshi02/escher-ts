@@ -3,6 +3,7 @@ import { type TermValue } from "../types/value.js";
 
 export const asList = (value: TermValue): readonly TermValue[] | null => (value.tag === "list" ? value.elems : null);
 export const asInt = (value: TermValue): number | null => (value.tag === "int" ? value.value : null);
+export const asRef = (value: TermValue): number | null => (value.tag === "ref" ? value.value : null);
 export const asBool = (value: TermValue): boolean | null => (value.tag === "bool" ? value.value : null);
 
 export const termEq = (a: Term, b: Term): boolean => JSON.stringify(a) === JSON.stringify(b);

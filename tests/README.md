@@ -1,19 +1,33 @@
 # Test Structure
 
+## ディレクトリ
+
 - `tests/unit/`
-  - Fast, deterministic tests for isolated modules.
-  - `types/`, `components/`, `synthesis/`, `utils/` are grouped by production module.
+  - 低コストな純粋ユニットテスト
+  - `types/`, `components/`, `library/`, `synthesis/`, `cli/`, `benchmarks/`, `utils/` を対象に分割
 - `tests/integration/`
-  - End-to-end behavior across multiple modules.
-  - Recursive execution paths and cross-module composition belong here.
+  - エンジン横断・JSON 読み込み・ベンチマーク実行などの結合テスト
+- `tests/helpers/`
+  - 複数テストで使い回す最小フィクスチャ
 
-## Naming
+## 現在のカバレッジ
 
-- Use `*.test.ts` for all test files.
-- Prefer one primary subject per file.
-- Keep shared setup local until duplication is meaningful; then extract to `tests/helpers/`.
+- TypedEscher / AscendRec の両合成器
+- benchmark harness / formatter / chart 出力
+- JSON タスク (`examples/`) 読み込みと実行
+- クラス参照系タスク（DLList/Point）
 
-## Current Scope
+## 命名・運用ルール
 
-- Phase1/2 are covered by unit and integration tests.
-- Phase3 (enumeration/state machine) tests should be added under `tests/unit/synthesis/` and `tests/integration/`.
+- テストファイルは `*.test.ts`
+- 1ファイル1責務を基本とする
+- 重複が発生してから `tests/helpers/` へ抽出する
+- 仕様変更時は unit と integration を同時更新する
+
+## よく使うコマンド
+
+```bash
+pnpm test
+pnpm test:run
+pnpm test:coverage
+```

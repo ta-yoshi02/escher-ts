@@ -14,7 +14,7 @@ import {
   lengthBenchmark,
   maxInListBenchmark,
   nodesAtLevelBenchmark,
-  paperExamplesBenchmarks,
+  pureExamplesBenchmarks,
   reverseBenchmark,
   shiftLeftBenchmark,
   squareListBenchmark,
@@ -87,7 +87,7 @@ describe("typed escher benchmarks", () => {
   it(
     "synthesized programs match oracle on benchmark probes",
     () => {
-      for (const benchmark of paperExamplesBenchmarks) {
+      for (const benchmark of pureExamplesBenchmarks) {
         const synth = new TypedEscherSynthesizer({
           maxCost: 13,
           searchSizeFactor: 3,

@@ -198,7 +198,7 @@ export class TypedEscherSynthesizer {
               }
               const vector = outputs.map((_, exId) => {
                 const callArgs = product.map((entry) => entry.valueVector[exId]!);
-                if (compName === name && !argDecrease(callArgs, exId)) {
+                if (compName === name && config.enforceDecreasingMeasure && !argDecrease(callArgs, exId)) {
                   return valueError;
                 }
                 return impl.executeEfficient(callArgs);
@@ -220,10 +220,20 @@ export class TypedEscherSynthesizer {
       if (timedOut()) {
         return null;
       }
-      const impl = recursiveImpl(signature, envComps, config.argListCompare, program.body);
+      const impl = recursiveImpl(signature, envComps, config.argListCompare, program.body, {
+        enforceDecreasingMeasure: config.enforceDecreasingMeasure,
+      });
 
       const passed: [ArgList, TermValue][] = [];
       const failed: [ArgList, TermValue][] = [];
+
+      for (const [args, expected] of examples) {
+        if (!equalTermValue(impl.executeEfficient(args), expected)) {
+          failed.push([args, expected]);
+        } else {
+          passed.push([args, expected]);
+        }
+      }
 
       for (const [args, expected] of bufferedOracle.bufferEntries()) {
         if (equalTermValue(impl.executeEfficient(args), expected)) {

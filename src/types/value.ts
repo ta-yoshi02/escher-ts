@@ -5,6 +5,7 @@ import {
   TBool,
   TInt,
   TList,
+  TRef,
   TPair,
   TTree,
   equalsType,
@@ -30,6 +31,11 @@ export interface ValueBool {
 
 export interface ValueInt {
   readonly tag: "int";
+  readonly value: number;
+}
+
+export interface ValueRef {
+  readonly tag: "ref";
   readonly value: number;
 }
 
@@ -68,7 +74,7 @@ export interface ValueObject {
   readonly fields: Readonly<Record<string, TermValue>>;
 }
 
-export type TermValue = ValueError | ValueBool | ValueInt | ValueList | ValuePair | ValueTree | ValueObject;
+export type TermValue = ValueError | ValueBool | ValueInt | ValueRef | ValueList | ValuePair | ValueTree | ValueObject;
 
 export interface MatchTypeResult {
   readonly subst: TypeSubst;
@@ -79,6 +85,7 @@ export const valueUnknown: ValueUnknown = { tag: "unknown" };
 export const valueError: ValueError = { tag: "error" };
 export const valueBool = (value: boolean): ValueBool => ({ tag: "bool", value });
 export const valueInt = (value: number): ValueInt => ({ tag: "int", value });
+export const valueRef = (value: number): ValueRef => ({ tag: "ref", value });
 export const valueList = (elems: readonly TermValue[]): ValueList => ({ tag: "list", elems });
 export const valuePair = (left: TermValue, right: TermValue): ValuePair => ({ tag: "pair", left, right });
 export const valueObject = (className: string, fields: Readonly<Record<string, TermValue>>): ValueObject => ({
@@ -117,6 +124,8 @@ export const showValue = (value: ExtendedValue): string => {
       return value.value ? "T" : "F";
     case "int":
       return `${value.value}`;
+    case "ref":
+      return `&${value.value}`;
     case "list":
       return `[${value.elems.map(showValue).join(", ")}]`;
     case "pair":
@@ -163,10 +172,11 @@ export const compareTermValue = (left: TermValue, right: TermValue): number => {
       error: 0,
       bool: 1,
       int: 2,
-      list: 3,
-      pair: 4,
-      tree: 5,
-      object: 6,
+      ref: 3,
+      list: 4,
+      pair: 5,
+      tree: 6,
+      object: 7,
     };
     return order[left.tag] - order[right.tag];
   }
@@ -183,6 +193,8 @@ export const compareTermValue = (left: TermValue, right: TermValue): number => {
     }
     case "int":
       return left.value - (right as ValueInt).value;
+    case "ref":
+      return left.value - (right as ValueRef).value;
     case "list": {
       const rhs = (right as ValueList).elems;
       const shared = Math.min(left.elems.length, rhs.length);
@@ -238,6 +250,9 @@ export const smallerThan = (left: TermValue, right: TermValue): boolean => {
   if (left.tag === "int" && right.tag === "int") {
     return Math.abs(left.value) < Math.abs(right.value);
   }
+  if (left.tag === "ref" && right.tag === "ref") {
+    return Math.abs(left.value) < Math.abs(right.value);
+  }
 
   if (left.tag === "list" && right.tag === "list") {
     return left.elems.length < right.elems.length;
@@ -277,6 +292,17 @@ const matchTypeAux = (value: TermValue, ty: Type, counter: () => number): TypeSu
       return matchTApply(ty, typeApply(TBool, []));
     case "int":
       return matchTApply(ty, typeApply(TInt, []));
+    case "ref": {
+      if (ty.kind === "var") {
+        const e = typeVar(counter());
+        const refTy = typeApply(TRef, [e]);
+        return new TypeSubst([[ty.id, refTy]]);
+      }
+      if (ty.kind === "apply" && ty.constructor === TRef && ty.params.length === 1) {
+        return TypeSubst.empty;
+      }
+      return null;
+    }
     case "list": {
       if (ty.kind === "var") {
         const fresh = counter();

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  classBenchmarks,
   reverseBenchmark,
   runAscendRecBenchmarks,
   runTypedEscherBenchmarks,
@@ -68,5 +69,51 @@ describe("benchmark harness", () => {
     expect(report.succeeded).toBe(2);
     expect(report.cases.every((c) => c.success)).toBe(true);
     expect(report.engine).toBe("ascendrec");
+  });
+
+  it("runs class benchmark cases with typed-escher engine", () => {
+    const classCase = classBenchmarks.find((b) => b.name === "dllistIsNull");
+    expect(classCase).toBeDefined();
+    const report = runTypedEscherBenchmarks({
+      benchmarks: [classCase!],
+      synthConfig: {
+        maxCost: 6,
+        searchSizeFactor: 3,
+        maxReboots: 3,
+        goalSearchStrategy: "then-first",
+        deleteAllErr: true,
+        timeoutMs: 1000,
+      },
+    });
+
+    expect(report.total).toBe(1);
+    expect(report.failed).toBe(0);
+    expect(report.succeeded).toBe(1);
+    expect(report.cases[0]?.category).toBe("classes");
+  });
+
+  it("applies per-benchmark synth config overrides", () => {
+    const classCase = classBenchmarks.find((b) => b.name === "dllistThisRef");
+    expect(classCase).toBeDefined();
+    const benchmark = {
+      ...classCase!,
+      synthConfigOverride: {
+        enforceDecreasingMeasure: false,
+      },
+    };
+    const report = runTypedEscherBenchmarks({
+      benchmarks: [benchmark],
+      synthConfig: {
+        maxCost: 11,
+        searchSizeFactor: 2,
+        maxReboots: 1,
+        goalSearchStrategy: "then-first",
+        deleteAllErr: true,
+        timeoutMs: 1000,
+        enforceDecreasingMeasure: true,
+      },
+    });
+    expect(report.failed).toBe(0);
+    expect(report.cases[0]?.config.enforceDecreasingMeasure).toBe(false);
   });
 });

@@ -6,7 +6,7 @@ import { type Term } from "../types/term.js";
 import { type Type } from "../types/type.js";
 import { type TermValue } from "../types/value.js";
 
-export type BenchmarkCategory = "lists" | "integers" | "trees";
+export type BenchmarkCategory = "lists" | "integers" | "trees" | "classes";
 
 export interface TypedEscherBenchmarkCase {
   name: string;
@@ -15,6 +15,9 @@ export interface TypedEscherBenchmarkCase {
   inputNames: readonly string[];
   returnType: Type;
   env: ReadonlyMap<string, ComponentImpl>;
+  synthConfigOverride?: {
+    readonly enforceDecreasingMeasure?: boolean;
+  };
   ascendRecEnv?: ReadonlyMap<string, ComponentImpl>;
   examples: readonly (readonly [readonly TermValue[], TermValue])[];
   ascendRecExamples?: readonly (readonly [readonly TermValue[], TermValue])[];
@@ -23,20 +26,23 @@ export interface TypedEscherBenchmarkCase {
   ascendRecReductionRules?: ReadonlyMap<string, (args: readonly Term[]) => boolean>;
 }
 
-const BENCHMARK_DIR = join(process.cwd(), "examples", "benchmarks");
+const PURE_BENCHMARK_DIR = join(process.cwd(), "examples", "benchmarks-pure");
+const CLASS_BENCHMARK_DIR = join(process.cwd(), "examples", "benchmarks-classes");
 const SUITE_DIR = join(process.cwd(), "examples", "benchmark-suites");
+const PURE_SUITE_PATH = join(SUITE_DIR, "pure.json");
 const STANDARD_SUITE_PATH = join(SUITE_DIR, "standard.json");
+const CLASSES_SUITE_PATH = join(SUITE_DIR, "classes.json");
 const asCategory = (value: unknown, benchmarkName: string): BenchmarkCategory => {
-  if (value === "lists" || value === "integers" || value === "trees") {
+  if (value === "lists" || value === "integers" || value === "trees" || value === "classes") {
     return value;
   }
-  throw new Error(`Benchmark '${benchmarkName}' must define category as 'lists' | 'integers' | 'trees'`);
+  throw new Error(`Benchmark '${benchmarkName}' must define category as 'lists' | 'integers' | 'trees' | 'classes'`);
 };
 
-const loadBenchmarksFromJson = (): readonly TypedEscherBenchmarkCase[] => {
-  const files = readdirSync(BENCHMARK_DIR).filter((file) => file.endsWith(".json")).sort();
+const loadBenchmarksFromJsonDir = (benchmarkDir: string): readonly TypedEscherBenchmarkCase[] => {
+  const files = readdirSync(benchmarkDir).filter((file) => file.endsWith(".json")).sort();
   return files.map((file) => {
-    const rawText = readFileSync(join(BENCHMARK_DIR, file), "utf8");
+    const rawText = readFileSync(join(benchmarkDir, file), "utf8");
     const rawObj = JSON.parse(rawText) as Record<string, unknown>;
     const spec = parseJsonSynthesisSpec(rawText);
     const job = prepareJsonSynthesisJob(spec);
@@ -53,11 +59,21 @@ const loadBenchmarksFromJson = (): readonly TypedEscherBenchmarkCase[] => {
   });
 };
 
-const paperByName = new Map(loadBenchmarksFromJson().map((benchmark) => [benchmark.name, benchmark] as const));
-const requireBenchmark = (name: string): TypedEscherBenchmarkCase => {
-  const benchmark = paperByName.get(name);
+const pureByName = new Map(loadBenchmarksFromJsonDir(PURE_BENCHMARK_DIR).map((benchmark) => [benchmark.name, benchmark] as const));
+const classByName = new Map(loadBenchmarksFromJsonDir(CLASS_BENCHMARK_DIR).map((benchmark) => [benchmark.name, benchmark] as const));
+
+const requirePureBenchmark = (name: string): TypedEscherBenchmarkCase => {
+  const benchmark = pureByName.get(name);
   if (benchmark === undefined) {
-    throw new Error(`Benchmark '${name}' is not defined in ${BENCHMARK_DIR}`);
+    throw new Error(`Benchmark '${name}' is not defined in ${PURE_BENCHMARK_DIR}`);
+  }
+  return benchmark;
+};
+
+const requireClassBenchmark = (name: string): TypedEscherBenchmarkCase => {
+  const benchmark = classByName.get(name);
+  if (benchmark === undefined) {
+    throw new Error(`Benchmark '${name}' is not defined in ${CLASS_BENCHMARK_DIR}`);
   }
   return benchmark;
 };
@@ -75,25 +91,33 @@ const loadSuiteNames = (path: string): readonly string[] => {
   });
 };
 
-export const paperExamplesBenchmarks: readonly TypedEscherBenchmarkCase[] = [...paperByName.values()];
+export const pureExamplesBenchmarks: readonly TypedEscherBenchmarkCase[] = [...pureByName.values()];
+export const classExamplesBenchmarks: readonly TypedEscherBenchmarkCase[] = [...classByName.values()];
+
+export const pureBenchmarks: readonly TypedEscherBenchmarkCase[] = loadSuiteNames(PURE_SUITE_PATH).map((name) =>
+  requirePureBenchmark(name),
+);
 export const standardListBenchmarks: readonly TypedEscherBenchmarkCase[] = loadSuiteNames(STANDARD_SUITE_PATH).map((name) =>
-  requireBenchmark(name),
+  requirePureBenchmark(name),
+);
+export const classBenchmarks: readonly TypedEscherBenchmarkCase[] = loadSuiteNames(CLASSES_SUITE_PATH).map((name) =>
+  requireClassBenchmark(name),
 );
 
-export const reverseBenchmark = requireBenchmark("reverse");
-export const lengthBenchmark = requireBenchmark("length");
-export const compressBenchmark = requireBenchmark("compress");
-export const stutterBenchmark = requireBenchmark("stutter");
-export const squareListBenchmark = requireBenchmark("squareList");
-export const insertBenchmark = requireBenchmark("insert");
-export const lastInListBenchmark = requireBenchmark("lastInList");
-export const cartesianBenchmark = requireBenchmark("cartesian");
-export const fibBenchmark = requireBenchmark("fib");
-export const sumUnderBenchmark = requireBenchmark("sumUnder");
-export const dropLastBenchmark = requireBenchmark("dropLast");
-export const evensBenchmark = requireBenchmark("evens");
-export const shiftLeftBenchmark = requireBenchmark("shiftLeft");
-export const maxInListBenchmark = requireBenchmark("maxInList");
-export const flattenTreeBenchmark = requireBenchmark("flattenTree");
-export const tConcatBenchmark = requireBenchmark("tConcat");
-export const nodesAtLevelBenchmark = requireBenchmark("nodesAtLevel");
+export const reverseBenchmark = requirePureBenchmark("reverse");
+export const lengthBenchmark = requirePureBenchmark("length");
+export const compressBenchmark = requirePureBenchmark("compress");
+export const stutterBenchmark = requirePureBenchmark("stutter");
+export const squareListBenchmark = requirePureBenchmark("squareList");
+export const insertBenchmark = requirePureBenchmark("insert");
+export const lastInListBenchmark = requirePureBenchmark("lastInList");
+export const cartesianBenchmark = requirePureBenchmark("cartesian");
+export const fibBenchmark = requirePureBenchmark("fib");
+export const sumUnderBenchmark = requirePureBenchmark("sumUnder");
+export const dropLastBenchmark = requirePureBenchmark("dropLast");
+export const evensBenchmark = requirePureBenchmark("evens");
+export const shiftLeftBenchmark = requirePureBenchmark("shiftLeft");
+export const maxInListBenchmark = requirePureBenchmark("maxInList");
+export const flattenTreeBenchmark = requirePureBenchmark("flattenTree");
+export const tConcatBenchmark = requirePureBenchmark("tConcat");
+export const nodesAtLevelBenchmark = requirePureBenchmark("nodesAtLevel");

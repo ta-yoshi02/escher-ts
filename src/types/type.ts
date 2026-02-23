@@ -27,6 +27,7 @@ export const TList: TypeConstructor = { name: "List", arity: 1 };
 export const TTree: TypeConstructor = { name: "Tree", arity: 1 };
 export const TPair: TypeConstructor = { name: "Pair", arity: 2 };
 export const TMap: TypeConstructor = { name: "Map", arity: 2 };
+export const TRef: TypeConstructor = { name: "Ref", arity: 1 };
 const objectTypeConstructors = new Map<string, TypeConstructor>();
 
 export const typeVar = (id: number): TVarType => ({ kind: "var", id });
@@ -45,6 +46,7 @@ export const tyList = (param: Type): Type => typeApply(TList, [param]);
 export const tyTree = (param: Type): Type => typeApply(TTree, [param]);
 export const tyPair = (left: Type, right: Type): Type => typeApply(TPair, [left, right]);
 export const tyMap = (keyType: Type, valueType: Type): Type => typeApply(TMap, [keyType, valueType]);
+export const tyRef = (target: Type): Type => typeApply(TRef, [target]);
 export const objectTypeConstructor = (className: string): TypeConstructor => {
   const key = className.trim();
   if (key.length === 0) {

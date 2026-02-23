@@ -184,38 +184,59 @@ export interface ComponentSignature {
   readonly returnType: Type;
 }
 
+export interface RecursiveExecutionOptions {
+  readonly enforceDecreasingMeasure?: boolean;
+}
+
 export const recursiveImpl = (
   signature: ComponentSignature,
   compMap: ReadonlyMap<string, ComponentImpl>,
   argListCompare: ArgListCompare,
   body: import("../types/term.js").Term,
+  options: RecursiveExecutionOptions = {},
 ): ComponentImpl => {
   const { name, argNames, inputTypes, returnType } = signature;
   const buffer = new Map<string, TermValue>();
+  const enforceDecreasingMeasure = options.enforceDecreasingMeasure ?? true;
 
   const keyOf = (args: readonly TermValue[]): string => JSON.stringify(args);
 
-  const build = (lastArg: readonly TermValue[] | null): ComponentImpl =>
-    new ComponentImpl(name, inputTypes, returnType, (args) => {
-      if (lastArg !== null && !argListCompare(args, lastArg)) {
-        return valueError;
-      }
+  const evaluate = (
+    args: readonly TermValue[],
+    lastArg: readonly TermValue[] | null,
+    inProgress: Set<string>,
+  ): TermValue => {
+    if (enforceDecreasingMeasure && lastArg !== null && !argListCompare(args, lastArg)) {
+      return valueError;
+    }
 
-      const key = keyOf(args);
-      const known = buffer.get(key);
-      if (known !== undefined) {
-        return known;
-      }
+    const key = keyOf(args);
+    const known = buffer.get(key);
+    if (known !== undefined) {
+      return known;
+    }
+    if (inProgress.has(key)) {
+      return valueError;
+    }
 
-      const newMap = new Map(compMap);
-      newMap.set(name, build(args));
+    const recursiveComp = new ComponentImpl(name, inputTypes, returnType, (recursiveArgs) =>
+      evaluate(recursiveArgs, args, inProgress),
+    );
+
+    const newMap = new Map(compMap);
+    newMap.set(name, recursiveComp);
+
+    inProgress.add(key);
+    try {
       const out = executeTerm(makeScopedResolver(argNames, args), newMap, body);
-
       buffer.set(key, out);
       return out;
-    });
+    } finally {
+      inProgress.delete(key);
+    }
+  };
 
-  return build(null);
+  return new ComponentImpl(name, inputTypes, returnType, (args) => evaluate(args, null, new Set<string>()));
 };
 
 export const nonRecursiveImpl = (

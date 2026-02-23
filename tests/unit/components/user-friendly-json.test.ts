@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   parseJsonSynthesisSpec,
@@ -5,7 +7,7 @@ import {
   prepareJsonSynthesisJob,
   prepareJsonSynthesisSpec,
 } from "../../../src/components/user-friendly-json.js";
-import { tyInt, tyList, tyObject, tyPair } from "../../../src/types/type.js";
+import { tyInt, tyList, tyObject, tyPair, tyRef } from "../../../src/types/type.js";
 import { valueError, valueInt, valueList, valueObject } from "../../../src/types/value.js";
 
 describe("user-friendly JSON spec", () => {
@@ -69,6 +71,7 @@ describe("user-friendly JSON spec", () => {
     expect(parseTypeSpec("Int")).toEqual(tyInt);
     expect(parseTypeSpec("List[Int]")).toEqual(tyList(tyInt));
     expect(parseTypeSpec("Pair[Int, List[Int]]")).toEqual(tyPair(tyInt, tyList(tyInt)));
+    expect(parseTypeSpec("Ref[Int]")).toEqual(tyRef(tyInt));
   });
 
   it("supports explicit oracle table", () => {
@@ -193,5 +196,42 @@ describe("user-friendly JSON spec", () => {
 
     const job = prepareJsonSynthesisJob(spec);
     expect(job.returnType).toEqual(tyObject("Point"));
+  });
+
+  it("can keep class types without exposing auto-generated class components", () => {
+    const spec = parseJsonSynthesisSpec(`{
+      "name": "typedOnly",
+      "classes": [{ "name": "Node", "fields": { "next": "Int" } }],
+      "exposeClassComponents": false,
+      "signature": {
+        "inputNames": ["x"],
+        "inputTypes": ["Node"],
+        "returnType": "Node"
+      },
+      "components": [],
+      "examples": [
+        [[{ "object": { "className": "Node", "fields": { "next": 0 } }}], { "object": { "className": "Node", "fields": { "next": 0 } }}]
+      ]
+    }`);
+    const prepared = prepareJsonSynthesisSpec(spec);
+    expect(prepared.env.get("new_Node")).toBeUndefined();
+    const job = prepareJsonSynthesisJob(spec);
+    expect(job.inputTypes).toEqual([tyObject("Node")]);
+  });
+
+  it("prepares the basic DLList next task with Ref-typed links", () => {
+    const jsonPath = resolve(process.cwd(), "examples/benchmarks-classes/dllist-next-ref.json");
+    const spec = parseJsonSynthesisSpec(readFileSync(jsonPath, "utf8"));
+    const job = prepareJsonSynthesisJob(spec);
+    expect(job.inputTypes).toEqual([
+      tyRef(tyObject("DLNode")),
+      tyList(tyObject("DLNode")),
+      tyList(tyInt),
+      tyList(tyObject("DLNode")),
+      tyList(tyObject("DLNode")),
+    ]);
+    expect(job.returnType).toEqual(tyRef(tyObject("DLNode")));
+    const [firstInput, firstOutput] = job.examples[0]!;
+    expect(job.oracle(firstInput)).toEqual(firstOutput);
   });
 });

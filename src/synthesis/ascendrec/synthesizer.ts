@@ -1,7 +1,7 @@
-import { type ArgList, type ComponentImpl, type ComponentSignature } from "../../components/component.js";
+import { type ArgList, type ComponentImpl, type ComponentSignature, recursiveImpl } from "../../components/component.js";
 import { componentTerm, showTerm, type Term, varTerm } from "../../types/term.js";
 import { fixVars, type Type } from "../../types/type.js";
-import { type ExtendedValue, type TermValue, valueError } from "../../types/value.js";
+import { equalTermValue, type ExtendedValue, type TermValue, valueError } from "../../types/value.js";
 import {
   divideNumberAsSum,
   forEachCartesianProduct,
@@ -221,7 +221,7 @@ export class AscendRecSynthesizer {
                 const term = componentTerm(impl.name, termArgs);
                 const valueVector = outputs.map((_, exId) => {
                   const args = product.map((entry) => entry.valueVector[exId]!);
-                  if (!argDecrease(args, exId)) {
+                  if (config.enforceDecreasingMeasure && !argDecrease(args, exId)) {
                     return valueError;
                   }
                   return impl.execute(args);
@@ -294,6 +294,12 @@ export class AscendRecSynthesizer {
     };
 
     const goalVM: IndexValueMap = new Map(outputs.map((value, index) => [index, value]));
+    const validateBody = (body: Term): boolean => {
+      const impl = recursiveImpl(signature, envComps, config.argListCompare, body, {
+        enforceDecreasingMeasure: config.enforceDecreasingMeasure,
+      });
+      return examples.every(([args, expected]) => equalTermValue(impl.executeEfficient(args), expected));
+    };
 
     for (let level = 1; level <= config.maxCost; level += 1) {
       if (!synthesizeAtCost(level, true)) {
@@ -319,7 +325,7 @@ export class AscendRecSynthesizer {
         levelDiag.recReturnTermSamples = recTerms.slice(0, 8).map(([term]) => showTerm(term));
       }
       const directHit = state.exactKnownGoalHit(level, outputs);
-      if (directHit !== null) {
+      if (directHit !== null && validateBody(directHit)) {
         const diagnostics = buildDiagnostics("success");
         config.onDiagnostics?.(diagnostics);
         return {
@@ -344,6 +350,7 @@ export class AscendRecSynthesizer {
           signature,
           envComps,
           config.argListCompare,
+          config.enforceDecreasingMeasure,
           inputs,
           termsWithKnownVV,
           nonRecBoolTerms,
@@ -358,7 +365,7 @@ export class AscendRecSynthesizer {
           (t) => t,
           true,
         );
-        if (searchResult !== null) {
+        if (searchResult !== null && validateBody(searchResult[1])) {
           const [cost, body] = searchResult;
           const diagnostics = buildDiagnostics("success");
           config.onDiagnostics?.(diagnostics);

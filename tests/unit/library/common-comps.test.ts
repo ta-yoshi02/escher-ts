@@ -7,12 +7,15 @@ import {
   getBenchmarkPresetComponents,
   getCommonComponents,
   getCommonComponentsByDomain,
+  isNull,
   listBenchmarkComponentPresets,
   listCommonComponentDomains,
   listCommonComponentSets,
   reverseRef,
   stutterRef,
+  valueBool,
   valueInt,
+  valueRef,
   valueList,
 } from "../../../src/index.js";
 
@@ -30,6 +33,12 @@ describe("common comps", () => {
   it("compress reference component works", () => {
     const out = compressRef.executeEfficient([valueList([valueInt(2), valueInt(3), valueInt(3), valueInt(9), valueInt(9)])]);
     expect(out).toEqual(valueList([valueInt(2), valueInt(3), valueInt(9)]));
+  });
+
+  it("isNull component treats -1 as null reference label", () => {
+    expect(isNull.executeEfficient([valueRef(-1)])).toEqual(valueBool(true));
+    expect(isNull.executeEfficient([valueRef(0)])).toEqual(valueBool(false));
+    expect(isNull.executeEfficient([valueRef(42)])).toEqual(valueBool(false));
   });
 
   it("exposes named common component sets for external composition", () => {

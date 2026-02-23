@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  paperExamplesBenchmarks,
+  classBenchmarks,
+  classExamplesBenchmarks,
+  pureBenchmarks,
+  pureExamplesBenchmarks,
   standardListBenchmarks,
 } from "../../../src/benchmarks/typed-escher-benchmarks.js";
 
@@ -15,8 +18,8 @@ describe("typed escher benchmarks", () => {
     }
   });
 
-  it("keeps oracle-consistent examples for all paper cases", () => {
-    for (const benchmark of paperExamplesBenchmarks) {
+  it("keeps oracle-consistent examples for all pure cases", () => {
+    for (const benchmark of pureExamplesBenchmarks) {
       expect(benchmark.examples.length).toBeGreaterThan(0);
       for (const [args, out] of benchmark.examples) {
         expect(benchmark.oracle(args)).toEqual(out);
@@ -25,7 +28,7 @@ describe("typed escher benchmarks", () => {
   });
 
   it("uses benchmark-local component envs", () => {
-    for (const benchmark of paperExamplesBenchmarks) {
+    for (const benchmark of pureExamplesBenchmarks) {
       const ascendRecEnv = benchmark.ascendRecEnv ?? benchmark.env;
       const baselineNames = new Set([...benchmark.env.keys()]);
       const ascendRecNames = new Set([...ascendRecEnv.keys()]);
@@ -34,6 +37,13 @@ describe("typed escher benchmarks", () => {
   });
 
   it("loads all 17 benchmark specs from JSON", () => {
-    expect(paperExamplesBenchmarks).toHaveLength(17);
+    expect(pureExamplesBenchmarks).toHaveLength(17);
+    expect(pureBenchmarks).toHaveLength(17);
+  });
+
+  it("loads class benchmark specs from JSON", () => {
+    expect(classExamplesBenchmarks.length).toBeGreaterThan(0);
+    expect(classExamplesBenchmarks.every((b) => b.category === "classes")).toBe(true);
+    expect(classBenchmarks.length).toBeGreaterThan(0);
   });
 });

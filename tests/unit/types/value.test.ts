@@ -7,8 +7,9 @@ import {
   valueInt,
   valueList,
   valuePair,
+  valueRef,
 } from "../../../src/types/value.js";
-import { TypeSubst, tyBool, tyInt, tyList, typeVar } from "../../../src/types/type.js";
+import { TypeSubst, tyBool, tyInt, tyList, tyRef, typeVar } from "../../../src/types/type.js";
 
 describe("value migration", () => {
   it("matches primitive and list types", () => {
@@ -24,6 +25,12 @@ describe("value migration", () => {
     expect(matched?.subst.equals(new TypeSubst([[0, tyList(tyBool)], [5, tyBool]]))).toBe(true);
   });
 
+  it("supports reference values and type matching", () => {
+    expect(matchType(valueRef(7), tyRef(tyInt), 1)?.subst.equals(TypeSubst.empty)).toBe(true);
+    const inferred = matchType(valueRef(7), typeVar(0), 3);
+    expect(inferred?.subst.equals(new TypeSubst([[0, tyRef(typeVar(3))]]))).toBe(true);
+  });
+
   it("keeps size ordering semantics", () => {
     expect(smallerThan(valueInt(2), valueInt(10))).toBe(true);
     expect(smallerThan(valueList([valueInt(1)]), valueList([valueInt(1), valueInt(2)]))).toBe(true);
@@ -33,6 +40,7 @@ describe("value migration", () => {
   it("provides deterministic total ordering for term values", () => {
     expect(compareTermValue(valueBool(false), valueBool(true))).toBeLessThan(0);
     expect(compareTermValue(valueInt(2), valueInt(10))).toBeLessThan(0);
+    expect(compareTermValue(valueRef(2), valueRef(10))).toBeLessThan(0);
     expect(compareTermValue(valueList([valueInt(1)]), valueList([valueInt(1), valueInt(2)]))).toBeLessThan(0);
   });
 });

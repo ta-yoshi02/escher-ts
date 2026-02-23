@@ -13,7 +13,7 @@ import {
 } from "./user-friendly.js";
 import { type ArgList } from "./component.js";
 import { equalTermValue, type TermValue, valueError, valueObject } from "../types/value.js";
-import { equalsType, type Type, tyBool, tyInt, tyList, tyObject, tyPair, tyTree } from "../types/type.js";
+import { equalsType, type Type, tyBool, tyInt, tyList, tyObject, tyPair, tyRef, tyTree } from "../types/type.js";
 import {
   getBenchmarkPresetComponents,
   listBenchmarkComponentPresets,
@@ -23,10 +23,14 @@ import {
 
 export interface JsonComponentSpec {
   readonly name: string;
-  readonly kind: "intConst" | "intUnary" | "intBinary" | "boolUnary" | "libraryRef";
+  readonly kind: "intConst" | "intUnary" | "intBinary" | "boolUnary" | "libraryRef" | "js";
   readonly value?: number;
   readonly op?: string;
   readonly ref?: string;
+  readonly inputTypes?: readonly string[];
+  readonly returnType?: string;
+  readonly args?: readonly string[];
+  readonly bodyJs?: string;
 }
 
 export interface JsonClassMethodSpec {
@@ -46,6 +50,7 @@ export interface JsonSynthesisSpec {
   readonly name?: string;
   readonly category?: string;
   readonly classes?: readonly JsonClassSpec[];
+  readonly exposeClassComponents?: boolean;
   readonly componentsPreset?: string;
   readonly signature?: {
     readonly inputNames: readonly string[];
@@ -156,8 +161,10 @@ const parseComponent = (spec: JsonComponentSpec, index: number): ComponentDefini
         isReducible: resolved.isReducible,
       };
     }
+    case "js":
+      throw new Error(`${path}.kind=js requires class-aware type resolver; parse via parseComponentWithResolver`);
     default:
-      throw new Error(`${path}.kind must be one of: intConst, intUnary, intBinary, boolUnary, libraryRef`);
+      throw new Error(`${path}.kind must be one of: intConst, intUnary, intBinary, boolUnary, libraryRef, js`);
   }
 };
 
@@ -192,6 +199,8 @@ const ensureSpecShape = (value: unknown): JsonSynthesisSpec => {
   const name = typeof record.name === "string" ? record.name : undefined;
   const category = typeof record.category === "string" ? record.category : undefined;
   const classes = Array.isArray(record.classes) ? (record.classes as JsonClassSpec[]) : undefined;
+  const exposeClassComponents =
+    typeof record.exposeClassComponents === "boolean" ? record.exposeClassComponents : undefined;
   const componentsPreset = typeof record.componentsPreset === "string" ? record.componentsPreset : undefined;
   const signatureRaw =
     typeof record.signature === "object" && record.signature !== null
@@ -230,11 +239,11 @@ const ensureSpecShape = (value: unknown): JsonSynthesisSpec => {
           : {
               kind: "examples" as const,
             });
-
   return {
     ...(name !== undefined ? { name } : {}),
     ...(category !== undefined ? { category } : {}),
     ...(classes !== undefined ? { classes } : {}),
+    ...(exposeClassComponents !== undefined ? { exposeClassComponents } : {}),
     ...(componentsPreset !== undefined ? { componentsPreset } : {}),
     ...(signature !== undefined ? { signature } : {}),
     ...(oracle !== undefined ? { oracle } : {}),
@@ -254,6 +263,7 @@ export interface PreparedJsonSpec {
 }
 
 export const prepareJsonSynthesisSpec = (spec: JsonSynthesisSpec): PreparedJsonSpec => {
+  const resolveClassType = buildClassTypeResolver(spec.classes);
   const presetComponents =
     spec.componentsPreset === undefined
       ? []
@@ -265,8 +275,10 @@ export const prepareJsonSynthesisSpec = (spec: JsonSynthesisSpec): PreparedJsonS
           return [...getBenchmarkPresetComponents(spec.componentsPreset as never)];
         })();
 
-  const userDefined = defineUserComponents(spec.components.map((component, index) => parseComponent(component, index)));
-  const classGenerated = lowerClassSpecsToComponents(spec.classes);
+  const userDefined = defineUserComponents(
+    spec.components.map((component, index) => parseComponentWithResolver(component, index, resolveClassType)),
+  );
+  const classGenerated = spec.exposeClassComponents === false ? [] : lowerClassSpecsToComponents(spec.classes);
   const components = [...presetComponents, ...classGenerated, ...userDefined];
   return {
     name: spec.name,
@@ -310,6 +322,11 @@ const parseTypeAt = (text: string, start: number): { readonly type: Type; readon
       const end = consume("]", right.end);
       return { type: tyPair(left.type, right.type), end };
     }
+    if (src.startsWith("Ref[", pos)) {
+      const inside = parseInner(pos + 4);
+      const end = consume("]", inside.end);
+      return { type: tyRef(inside.type), end };
+    }
     throw new Error(`Unsupported type expression: '${text}'`);
   };
   return parseInner(start);
@@ -329,18 +346,121 @@ const parseTypeSpecWithResolver = (
   resolveNamedType: ((name: string) => Type | null) | undefined,
 ): Type => {
   const src = stripSpaces(text);
-  if (src.startsWith("Object[") && src.endsWith("]")) {
-    return tyObject(src.slice("Object[".length, -1));
-  }
-  try {
-    return parseTypeSpec(src);
-  } catch {
-    const resolved = resolveNamedType?.(src) ?? null;
+  let pos = 0;
+  const peek = (): string => src[pos] ?? "";
+  const consume = (ch: string): void => {
+    if (src[pos] !== ch) {
+      throw new Error(`Invalid type expression near '${src.slice(pos)}' in '${text}'`);
+    }
+    pos += 1;
+  };
+  const readIdent = (): string => {
+    const start = pos;
+    while (pos < src.length && /[A-Za-z0-9_]/.test(src[pos]!)) {
+      pos += 1;
+    }
+    if (start === pos) {
+      throw new Error(`Expected type identifier near '${src.slice(pos)}' in '${text}'`);
+    }
+    return src.slice(start, pos);
+  };
+  const parseTy = (): Type => {
+    const ident = readIdent();
+    if (ident === "Int") {
+      return tyInt;
+    }
+    if (ident === "Bool") {
+      return tyBool;
+    }
+    if (ident === "List") {
+      consume("[");
+      const inner = parseTy();
+      consume("]");
+      return tyList(inner);
+    }
+    if (ident === "Tree") {
+      consume("[");
+      const inner = parseTy();
+      consume("]");
+      return tyTree(inner);
+    }
+    if (ident === "Pair") {
+      consume("[");
+      const left = parseTy();
+      consume(",");
+      const right = parseTy();
+      consume("]");
+      return tyPair(left, right);
+    }
+    if (ident === "Ref") {
+      consume("[");
+      const inner = parseTy();
+      consume("]");
+      return tyRef(inner);
+    }
+    if (ident === "Object") {
+      consume("[");
+      const className = readIdent();
+      consume("]");
+      return tyObject(className);
+    }
+    const resolved = resolveNamedType?.(ident) ?? null;
     if (resolved !== null) {
       return resolved;
     }
-    throw new Error(`Unsupported type expression: '${text}'`);
+    return tyObject(ident);
+  };
+
+  const ty = parseTy();
+  if (peek() !== "") {
+    throw new Error(`Invalid trailing type syntax in '${text}'`);
   }
+  return ty;
+};
+
+const parseComponentWithResolver = (
+  spec: JsonComponentSpec,
+  index: number,
+  resolveNamedType: ((name: string) => Type | null) | undefined,
+): ComponentDefinition => {
+  if (spec.kind !== "js") {
+    return parseComponent(spec, index);
+  }
+
+  const path = `components[${index}]`;
+  const name = asString(spec.name, `${path}.name`);
+  if (!Array.isArray(spec.inputTypes)) {
+    throw new Error(`${path}.inputTypes must be an array for kind=js`);
+  }
+  const inputTypes = spec.inputTypes.map((t, i) =>
+    parseTypeSpecWithResolver(asString(t, `${path}.inputTypes[${i}]`), resolveNamedType),
+  );
+  const returnType = parseTypeSpecWithResolver(asString(spec.returnType, `${path}.returnType`), resolveNamedType);
+  const args = spec.args?.map((arg, i) => asString(arg, `${path}.args[${i}]`));
+  const bodyJs = asString(spec.bodyJs, `${path}.bodyJs`);
+  const fn = new Function(...(args ?? ["args"]), bodyJs) as (...fnArgs: unknown[]) => unknown;
+
+  return {
+    name,
+    inputTypes,
+    returnType,
+    impl: (termArgs) => {
+      const literalArgs = termArgs.map((arg) => valueToLiteral(arg));
+      if (literalArgs.some((arg) => arg === null)) {
+        return valueError;
+      }
+      try {
+        const callArgs = args === undefined ? [literalArgs as UserLiteral[]] : (literalArgs as UserLiteral[]);
+        const out = fn(...callArgs);
+        if (out === "error") {
+          return valueError;
+        }
+        return literalToValue(out as UserLiteral);
+      } catch {
+        return valueError;
+      }
+    },
+  };
 };
 
 const buildClassTypeResolver = (classes: readonly JsonClassSpec[] | undefined) => {

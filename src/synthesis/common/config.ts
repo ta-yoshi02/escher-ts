@@ -7,6 +7,7 @@ export interface BaseSynthesisConfig {
   deleteAllErr: boolean;
   timeoutMs: number | null;
   argListCompare: ArgListCompare;
+  enforceDecreasingMeasure: boolean;
   searchSizeFactor: number;
   goalSearchStrategy: GoalSearchStrategy;
 }
@@ -16,6 +17,7 @@ export const defaultBaseSynthesisConfig: BaseSynthesisConfig = {
   deleteAllErr: true,
   timeoutMs: 1000,
   argListCompare: anyArgSmaller,
+  enforceDecreasingMeasure: true,
   searchSizeFactor: 3,
   goalSearchStrategy: "then-first",
 };

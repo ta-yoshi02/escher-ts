@@ -28,6 +28,9 @@ export const formatBenchmarkReport = (report: BenchmarkRunReport): string => {
     if (row.config.timeoutMs !== globalCfg.timeoutMs) {
       diffs.push(`timeoutMs=${row.config.timeoutMs === null ? "null" : row.config.timeoutMs}`);
     }
+    if (row.config.enforceDecreasingMeasure !== globalCfg.enforceDecreasingMeasure && row.config.enforceDecreasingMeasure !== undefined) {
+      diffs.push(`enforceDecreasingMeasure=${String(row.config.enforceDecreasingMeasure)}`);
+    }
     if (row.config.useReductionRules !== globalCfg.useReductionRules && row.config.useReductionRules !== undefined) {
       diffs.push(`useReductionRules=${String(row.config.useReductionRules)}`);
     }
@@ -45,16 +48,18 @@ export const formatBenchmarkReport = (report: BenchmarkRunReport): string => {
         return "Integers";
       case "trees":
         return "Trees";
+      case "classes":
+        return "Classes";
     }
   };
-  const order: TypedEscherBenchmarkCase["category"][] = ["lists", "integers", "trees"];
+  const order: TypedEscherBenchmarkCase["category"][] = ["lists", "integers", "trees", "classes"];
 
   const pad = (text: string, width: number): string => (text.length >= width ? text : `${text}${" ".repeat(width - text.length)}`);
   const lines: string[] = [];
   lines.push(`${report.engine === "typed-escher" ? "TypedEscher" : "AscendRec"} Benchmarks: ${report.succeeded}/${report.total} succeeded`);
   lines.push(`Duration: ${report.durationMs} ms`);
   lines.push(
-    `Config: maxCost=${report.options.synthConfig.maxCost}, strategy=${report.options.synthConfig.goalSearchStrategy ?? "-"}, searchSizeFactor=${report.options.synthConfig.searchSizeFactor}, maxReboots=${report.options.synthConfig.maxReboots ?? "-"}, timeoutMs=${report.options.synthConfig.timeoutMs}, useReductionRules=${report.options.synthConfig.useReductionRules ?? true}, onlyForwardSearch=${report.options.synthConfig.onlyForwardSearch ?? false}`,
+    `Config: maxCost=${report.options.synthConfig.maxCost}, strategy=${report.options.synthConfig.goalSearchStrategy ?? "-"}, searchSizeFactor=${report.options.synthConfig.searchSizeFactor}, maxReboots=${report.options.synthConfig.maxReboots ?? "-"}, timeoutMs=${report.options.synthConfig.timeoutMs}, enforceDecreasingMeasure=${report.options.synthConfig.enforceDecreasingMeasure ?? true}, useReductionRules=${report.options.synthConfig.useReductionRules ?? true}, onlyForwardSearch=${report.options.synthConfig.onlyForwardSearch ?? false}`,
   );
   lines.push("");
 
@@ -63,12 +68,13 @@ export const formatBenchmarkReport = (report: BenchmarkRunReport): string => {
     if (rows.length === 0) {
       continue;
     }
+    const nameWidth = Math.max("name".length, ...rows.map((row) => row.name.length));
     const succeeded = rows.filter((row) => row.success).length;
     lines.push(`[${categoryTitle(category)}] ${succeeded}/${rows.length} succeeded`);
-    lines.push(`${pad("name", 14)} ${pad("status", 7)} ${pad("ms", 6)} ${pad("cost", 6)} ${pad("depth", 6)} reboots`);
+    lines.push(`${pad("name", nameWidth)} ${pad("status", 7)} ${pad("ms", 6)} ${pad("cost", 6)} ${pad("depth", 6)} reboots`);
     for (const row of rows) {
       lines.push(
-        `${pad(row.name, 14)} ${pad(row.success ? "OK" : "FAIL", 7)} ${pad(String(row.elapsedMs), 6)} ${pad(row.cost === null ? "-" : String(row.cost), 6)} ${pad(row.depth === null ? "-" : String(row.depth), 6)} ${row.reboots === null ? "-" : String(row.reboots)}${configDiff(row)}`,
+        `${pad(row.name, nameWidth)} ${pad(row.success ? "OK" : "FAIL", 7)} ${pad(String(row.elapsedMs), 6)} ${pad(row.cost === null ? "-" : String(row.cost), 6)} ${pad(row.depth === null ? "-" : String(row.depth), 6)} ${row.reboots === null ? "-" : String(row.reboots)}${configDiff(row)}`,
       );
     }
     lines.push("");
@@ -89,7 +95,7 @@ export const formatBenchmarkProgramPairs = (report: BenchmarkRunReport): string 
     lines.push(`- Category: ${row.category}`);
     lines.push(`- Status: ${row.success ? "OK" : "FAIL"}`);
     lines.push(`- Signature: \`${row.inputSpec}\``);
-    lines.push(`- Options: \`maxCost=${row.config.maxCost}, searchSizeFactor=${row.config.searchSizeFactor}, maxReboots=${row.config.maxReboots ?? "-"}, strategy=${row.config.goalSearchStrategy ?? "-"}, useReductionRules=${row.config.useReductionRules ?? true}, onlyForwardSearch=${row.config.onlyForwardSearch ?? false}, deleteAllErr=${String(row.config.deleteAllErr)}, timeoutMs=${row.config.timeoutMs}\``);
+    lines.push(`- Options: \`maxCost=${row.config.maxCost}, searchSizeFactor=${row.config.searchSizeFactor}, maxReboots=${row.config.maxReboots ?? "-"}, strategy=${row.config.goalSearchStrategy ?? "-"}, enforceDecreasingMeasure=${row.config.enforceDecreasingMeasure ?? true}, useReductionRules=${row.config.useReductionRules ?? true}, onlyForwardSearch=${row.config.onlyForwardSearch ?? false}, deleteAllErr=${String(row.config.deleteAllErr)}, timeoutMs=${row.config.timeoutMs}\``);
     lines.push(`- Components (${row.components.length}): \`${row.components.join(", ")}\``);
     lines.push("");
     lines.push("### I/O Examples");

@@ -1,0 +1,17 @@
+{
+  "benchmarks": [
+    "pointXValueAtRef1",
+    "dllistIsNull",
+    "dllistThisRef",
+    "dllistNextRef",
+    "dllistPrevRef",
+    "dllistValueRef",
+    "dllistValueAtThis",
+    "dllistHasNext",
+    "dllistHasPrev",
+    "dllistIsHead",
+    "dllistIsTail",
+    "dllistNextValueRef",
+    "dllistLastNextRef"
+  ]
+}

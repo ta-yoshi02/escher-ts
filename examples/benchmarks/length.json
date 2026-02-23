@@ -1,0 +1,45 @@
+{
+  "name": "length",
+  "componentsPreset": "length",
+  "signature": {
+    "inputNames": [
+      "xs"
+    ],
+    "inputTypes": [
+      "List[Int]"
+    ],
+    "returnType": "Int"
+  },
+  "oracle": {
+    "kind": "componentRef",
+    "name": "length"
+  },
+  "components": [],
+  "examples": [
+    [
+      [
+        [
+          2,
+          3,
+          4
+        ]
+      ],
+      3
+    ],
+    [
+      [
+        [
+          1
+        ]
+      ],
+      1
+    ],
+    [
+      [
+        []
+      ],
+      0
+    ]
+  ],
+  "category": "lists"
+}

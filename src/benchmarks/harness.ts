@@ -1,0 +1,268 @@
+import { type ArgList, type ComponentImpl } from "../components/component.js";
+import { showTerm } from "../types/term.js";
+import { showType } from "../types/type.js";
+import { showValue, type TermValue } from "../types/value.js";
+import {
+  type TypedEscherBenchmarkCase,
+  standardListBenchmarks,
+} from "./typed-escher-benchmarks.js";
+import { TypedEscherSynthesizer, type TypedEscherConfig } from "../synthesis/escher/synthesizer.js";
+import { AscendRecSynthesizer } from "../synthesis/ascendrec/synthesizer.js";
+import { type AscendRecConfig, type AscendRecDiagnostics } from "../synthesis/ascendrec/types.js";
+
+export type BenchmarkEngine = "typed-escher" | "ascendrec";
+
+export interface BenchmarkSynthConfig {
+  maxCost: number;
+  searchSizeFactor: number;
+  deleteAllErr: boolean;
+  timeoutMs: number | null;
+  useReductionRules?: boolean;
+  maxReboots?: number | null;
+  goalSearchStrategy?: "then-first" | "cond-first";
+  onlyForwardSearch?: boolean;
+}
+
+export interface BenchmarkRunCase {
+  name: string;
+  category: TypedEscherBenchmarkCase["category"];
+  success: boolean;
+  elapsedMs: number;
+  cost: number | null;
+  depth: number | null;
+  reboots: number | null;
+  oracleProgram: string | null;
+  program: string | null;
+  inputSpec: string;
+  components: readonly string[];
+  exampleSpecs: readonly string[];
+  config: BenchmarkSynthConfig;
+  ascendRecDiagnostics?: AscendRecDiagnostics | null;
+}
+
+export interface BenchmarkRunReport {
+  engine: BenchmarkEngine;
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  total: number;
+  succeeded: number;
+  failed: number;
+  options: BenchmarkRunOptions;
+  cases: readonly BenchmarkRunCase[];
+}
+
+export interface BenchmarkRunOptions {
+  benchmarks: readonly TypedEscherBenchmarkCase[];
+  synthConfig: BenchmarkSynthConfig;
+}
+
+export interface BenchmarkRunHooks {
+  onCaseStart?: (ctx: { name: string; index: number; total: number }) => void;
+  onCaseFinish?: (ctx: { row: BenchmarkRunCase; index: number; total: number }) => void;
+}
+
+export interface BenchmarkRunParams extends Partial<BenchmarkRunOptions> {
+  hooks?: BenchmarkRunHooks;
+}
+
+export const defaultBenchmarkRunOptions = (): BenchmarkRunOptions => ({
+  benchmarks: standardListBenchmarks,
+  synthConfig: {
+    maxCost: 20,
+    searchSizeFactor: 3,
+    maxReboots: 10,
+    goalSearchStrategy: "then-first",
+    deleteAllErr: true,
+    timeoutMs: 1000,
+  },
+});
+
+export const defaultAscendRecBenchmarkRunOptions = (): BenchmarkRunOptions => ({
+  benchmarks: standardListBenchmarks,
+  synthConfig: {
+    maxCost: 20,
+    searchSizeFactor: 3,
+    deleteAllErr: true,
+    timeoutMs: 1000,
+    useReductionRules: true,
+    onlyForwardSearch: false,
+  },
+});
+
+interface BenchmarkExecutionContext {
+  readonly benchmark: TypedEscherBenchmarkCase;
+  readonly effectiveConfig: BenchmarkSynthConfig;
+  readonly envForEngine: ReadonlyMap<string, ComponentImpl>;
+  readonly examplesForEngine: readonly (readonly [ArgList, TermValue])[];
+}
+
+interface BenchmarkExecutionResult {
+  readonly program: { body: import("../types/term.js").Term; cost: number; depth: number } | null;
+  readonly reboots: number | null;
+  readonly ascendRecDiagnostics: AscendRecDiagnostics | null;
+}
+
+const executionContextForEngine = (
+  engine: BenchmarkEngine,
+  benchmark: TypedEscherBenchmarkCase,
+  effectiveConfig: BenchmarkSynthConfig,
+): BenchmarkExecutionContext => ({
+  benchmark,
+  effectiveConfig,
+  envForEngine: engine === "ascendrec" ? (benchmark.ascendRecEnv ?? benchmark.env) : benchmark.env,
+  examplesForEngine: engine === "ascendrec" ? (benchmark.ascendRecExamples ?? benchmark.examples) : benchmark.examples,
+});
+
+const runTypedEscherBenchmarkCase = (ctx: BenchmarkExecutionContext): BenchmarkExecutionResult => {
+  const typedConfig: Partial<TypedEscherConfig> = {
+    maxCost: ctx.effectiveConfig.maxCost,
+    searchSizeFactor: ctx.effectiveConfig.searchSizeFactor,
+    maxReboots: ctx.effectiveConfig.maxReboots ?? 10,
+    goalSearchStrategy: ctx.effectiveConfig.goalSearchStrategy ?? "then-first",
+    deleteAllErr: ctx.effectiveConfig.deleteAllErr,
+    timeoutMs: ctx.effectiveConfig.timeoutMs,
+  };
+  const synth = new TypedEscherSynthesizer(typedConfig);
+  const result = synth.synthesize(
+    ctx.benchmark.name,
+    ctx.benchmark.inputTypes,
+    ctx.benchmark.inputNames,
+    ctx.benchmark.returnType,
+    ctx.envForEngine,
+    ctx.examplesForEngine,
+    ctx.benchmark.oracle,
+  );
+  if (result === null) {
+    return { program: null, reboots: null, ascendRecDiagnostics: null };
+  }
+  return {
+    program: result.program,
+    reboots: result.data.reboots,
+    ascendRecDiagnostics: null,
+  };
+};
+
+const runAscendRecBenchmarkCase = (ctx: BenchmarkExecutionContext): BenchmarkExecutionResult => {
+  let ascendRecDiagnostics: AscendRecDiagnostics | null = null;
+  const ascendConfig: Partial<AscendRecConfig> = {
+    maxCost: ctx.effectiveConfig.maxCost,
+    searchSizeFactor: ctx.effectiveConfig.searchSizeFactor,
+    deleteAllErr: ctx.effectiveConfig.deleteAllErr,
+    timeoutMs: ctx.effectiveConfig.timeoutMs,
+    useReductionRules: ctx.effectiveConfig.useReductionRules ?? true,
+    onlyForwardSearch: ctx.effectiveConfig.onlyForwardSearch ?? false,
+    onDiagnostics: (d) => {
+      ascendRecDiagnostics = d;
+    },
+  };
+  const synth = new AscendRecSynthesizer(ascendConfig);
+  const result = synth.synthesize(
+    ctx.benchmark.name,
+    ctx.benchmark.inputTypes,
+    ctx.benchmark.inputNames,
+    ctx.benchmark.returnType,
+    ctx.envForEngine,
+    ctx.examplesForEngine,
+    ctx.benchmark.ascendRecReductionRules,
+  );
+  return {
+    program: result?.program ?? null,
+    reboots: null,
+    ascendRecDiagnostics,
+  };
+};
+
+const runBenchmarkCaseByEngine = (
+  engine: BenchmarkEngine,
+  ctx: BenchmarkExecutionContext,
+): BenchmarkExecutionResult =>
+  engine === "typed-escher" ? runTypedEscherBenchmarkCase(ctx) : runAscendRecBenchmarkCase(ctx);
+
+const makeBenchmarkRow = (
+  ctx: BenchmarkExecutionContext,
+  elapsedMs: number,
+  execution: BenchmarkExecutionResult,
+  showExample: (ex: readonly [ArgList, TermValue]) => string,
+): BenchmarkRunCase => ({
+  name: ctx.benchmark.name,
+  category: ctx.benchmark.category,
+  success: execution.program !== null,
+  elapsedMs,
+  cost: execution.program?.cost ?? null,
+  depth: execution.program?.depth ?? null,
+  reboots: execution.reboots,
+  oracleProgram: ctx.benchmark.oraclePretty ?? null,
+  program: execution.program === null ? null : showTerm(execution.program.body),
+  inputSpec: `(${ctx.benchmark.inputNames.map((n, i) => `${n}: ${showType(ctx.benchmark.inputTypes[i]!)}`).join(", ")}) => ${showType(ctx.benchmark.returnType)}`,
+  components: [...ctx.envForEngine.keys()].sort(),
+  exampleSpecs: ctx.examplesForEngine.map(showExample),
+  config: ctx.effectiveConfig,
+  ascendRecDiagnostics: execution.ascendRecDiagnostics,
+});
+
+const runBenchmarks = (
+  engine: BenchmarkEngine,
+  options: BenchmarkRunOptions,
+  hooks: BenchmarkRunHooks | undefined,
+): BenchmarkRunReport => {
+  const start = Date.now();
+  const startedAt = new Date(start).toISOString();
+
+  const cases: BenchmarkRunCase[] = [];
+  const showArgList = (args: ArgList): string => `(${args.map((v) => showValue(v)).join(", ")})`;
+  const showExample = ([args, out]: readonly [ArgList, TermValue]): string =>
+    `${showArgList(args)} -> ${showValue(out)}`;
+
+  for (const [idx, benchmark] of options.benchmarks.entries()) {
+    hooks?.onCaseStart?.({ name: benchmark.name, index: idx + 1, total: options.benchmarks.length });
+    const effectiveConfig: BenchmarkSynthConfig = { ...options.synthConfig };
+    const context = executionContextForEngine(engine, benchmark, effectiveConfig);
+
+    const caseStart = Date.now();
+    const execution = runBenchmarkCaseByEngine(engine, context);
+    const elapsedMs = Date.now() - caseStart;
+    const row = makeBenchmarkRow(context, elapsedMs, execution, showExample);
+    cases.push(row);
+    hooks?.onCaseFinish?.({ row, index: idx + 1, total: options.benchmarks.length });
+  }
+
+  const finished = Date.now();
+  const finishedAt = new Date(finished).toISOString();
+
+  const succeeded = cases.filter((c) => c.success).length;
+  return {
+    engine,
+    startedAt,
+    finishedAt,
+    durationMs: finished - start,
+    total: cases.length,
+    succeeded,
+    failed: cases.length - succeeded,
+    options,
+    cases,
+  };
+};
+
+export const runTypedEscherBenchmarks = (
+  params: BenchmarkRunParams = {},
+): BenchmarkRunReport => {
+  const defaults = defaultBenchmarkRunOptions();
+  const options: BenchmarkRunOptions = {
+    benchmarks: params.benchmarks ?? defaults.benchmarks,
+    synthConfig: { ...defaults.synthConfig, ...params.synthConfig },
+  };
+  return runBenchmarks("typed-escher", options, params.hooks);
+};
+
+export const runAscendRecBenchmarks = (
+  params: BenchmarkRunParams = {},
+): BenchmarkRunReport => {
+  const defaults = defaultAscendRecBenchmarkRunOptions();
+  const options: BenchmarkRunOptions = {
+    benchmarks: params.benchmarks ?? defaults.benchmarks,
+    synthConfig: { ...defaults.synthConfig, ...params.synthConfig },
+  };
+  return runBenchmarks("ascendrec", options, params.hooks);
+};
+export { formatBenchmarkProgramPairs, formatBenchmarkReport } from "./report-formatters.js";

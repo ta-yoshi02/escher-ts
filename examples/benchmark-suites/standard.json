@@ -1,0 +1,7 @@
+{
+  "benchmarks": [
+    "reverse",
+    "stutter",
+    "compress"
+  ]
+}

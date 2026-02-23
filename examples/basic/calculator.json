@@ -1,0 +1,23 @@
+{
+  "name": "calc",
+  "signature": {
+    "inputNames": ["x", "y"],
+    "inputTypes": ["Int", "Int"],
+    "returnType": "Int"
+  },
+  "oracle": {
+    "kind": "js",
+    "args": ["x", "y"],
+    "body": "return x * 2 + y;"
+  },
+  "components": [
+    { "name": "add", "kind": "intBinary", "op": "add" },
+    { "name": "mul", "kind": "intBinary", "op": "mul" },
+    { "name": "constTwo", "kind": "intConst", "value": 2 }
+  ],
+  "examples": [
+    [[1, 3], 5],
+    [[2, 5], 9],
+    [[4, 0], 8]
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "name": "cartesian",
+  "componentsPreset": "cartesian",
+  "signature": {
+    "inputNames": [
+      "xs",
+      "ys"
+    ],
+    "inputTypes": [
+      "List[Int]",
+      "List[Int]"
+    ],
+    "returnType": "List[Pair[Int,Int]]"
+  },
+  "oracle": {
+    "kind": "componentRef",
+    "name": "cartesian"
+  },
+  "components": [],
+  "examples": [
+    [
+      [
+        [],
+        [
+          2,
+          3,
+          4
+        ]
+      ],
+      []
+    ],
+    [
+      [
+        [
+          5
+        ],
+        []
+      ],
+      []
+    ],
+    [
+      [
+        [
+          5
+        ],
+        [
+          7,
+          8,
+          9
+        ]
+      ],
+      [
+        {
+          "pair": [
+            5,
+            7
+          ]
+        },
+        {
+          "pair": [
+            5,
+            8
+          ]
+        },
+        {
+          "pair": [
+            5,
+            9
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        [
+          2,
+          3
+        ],
+        [
+          4,
+          5
+        ]
+      ],
+      [
+        {
+          "pair": [
+            2,
+            4
+          ]
+        },
+        {
+          "pair": [
+            2,
+            5
+          ]
+        },
+        {
+          "pair": [
+            3,
+            4
+          ]
+        },
+        {
+          "pair": [
+            3,
+            5
+          ]
+        }
+      ]
+    ]
+  ],
+  "category": "lists"
+}

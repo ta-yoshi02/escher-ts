@@ -1,0 +1,83 @@
+{
+  "name": "flattenTree",
+  "componentsPreset": "flattenTree",
+  "signature": {
+    "inputNames": [
+      "tree"
+    ],
+    "inputTypes": [
+      "Tree[Int]"
+    ],
+    "returnType": "List[Int]"
+  },
+  "oracle": {
+    "kind": "componentRef",
+    "name": "flattenTree"
+  },
+  "components": [],
+  "examples": [
+    [
+      [
+        {
+          "tree": "leaf"
+        }
+      ],
+      []
+    ],
+    [
+      [
+        {
+          "tree": {
+            "value": 1,
+            "left": {
+              "tree": "leaf"
+            },
+            "right": {
+              "tree": "leaf"
+            }
+          }
+        }
+      ],
+      [
+        1
+      ]
+    ],
+    [
+      [
+        {
+          "tree": {
+            "value": 1,
+            "left": {
+              "tree": {
+                "value": 2,
+                "left": {
+                  "tree": "leaf"
+                },
+                "right": {
+                  "tree": "leaf"
+                }
+              }
+            },
+            "right": {
+              "tree": {
+                "value": 3,
+                "left": {
+                  "tree": "leaf"
+                },
+                "right": {
+                  "tree": "leaf"
+                }
+              }
+            }
+          }
+        }
+      ],
+      [
+        1,
+        2,
+        3
+      ]
+    ]
+  ],
+  "category": "trees"
+}

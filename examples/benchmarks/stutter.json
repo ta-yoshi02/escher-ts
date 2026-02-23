@@ -1,0 +1,55 @@
+{
+  "name": "stutter",
+  "componentsPreset": "stutter",
+  "signature": {
+    "inputNames": [
+      "xs"
+    ],
+    "inputTypes": [
+      "List[Int]"
+    ],
+    "returnType": "List[Int]"
+  },
+  "oracle": {
+    "kind": "componentRef",
+    "name": "stutter"
+  },
+  "components": [],
+  "examples": [
+    [
+      [
+        []
+      ],
+      []
+    ],
+    [
+      [
+        [
+          5
+        ]
+      ],
+      [
+        5,
+        5
+      ]
+    ],
+    [
+      [
+        [
+          5,
+          6,
+          3
+        ]
+      ],
+      [
+        5,
+        5,
+        6,
+        6,
+        3,
+        3
+      ]
+    ]
+  ],
+  "category": "lists"
+}

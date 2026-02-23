@@ -1,0 +1,69 @@
+{
+  "name": "sumUnder",
+  "componentsPreset": "sumUnder",
+  "signature": {
+    "inputNames": [
+      "n"
+    ],
+    "inputTypes": [
+      "Int"
+    ],
+    "returnType": "Int"
+  },
+  "oracle": {
+    "kind": "componentRef",
+    "name": "sumUnder"
+  },
+  "components": [],
+  "examples": [
+    [
+      [
+        -3
+      ],
+      0
+    ],
+    [
+      [
+        -2
+      ],
+      0
+    ],
+    [
+      [
+        -1
+      ],
+      0
+    ],
+    [
+      [
+        0
+      ],
+      0
+    ],
+    [
+      [
+        1
+      ],
+      1
+    ],
+    [
+      [
+        2
+      ],
+      3
+    ],
+    [
+      [
+        3
+      ],
+      6
+    ],
+    [
+      [
+        4
+      ],
+      10
+    ]
+  ],
+  "category": "integers"
+}

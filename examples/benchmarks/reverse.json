@@ -1,0 +1,53 @@
+{
+  "name": "reverse",
+  "componentsPreset": "reverse",
+  "signature": {
+    "inputNames": [
+      "xs"
+    ],
+    "inputTypes": [
+      "List[Int]"
+    ],
+    "returnType": "List[Int]"
+  },
+  "oracle": {
+    "kind": "componentRef",
+    "name": "reverse"
+  },
+  "components": [],
+  "examples": [
+    [
+      [
+        []
+      ],
+      []
+    ],
+    [
+      [
+        [
+          1,
+          2
+        ]
+      ],
+      [
+        2,
+        1
+      ]
+    ],
+    [
+      [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      [
+        3,
+        2,
+        1
+      ]
+    ]
+  ],
+  "category": "lists"
+}

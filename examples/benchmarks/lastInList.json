@@ -1,0 +1,70 @@
+{
+  "name": "lastInList",
+  "componentsPreset": "lastInList",
+  "signature": {
+    "inputNames": [
+      "xs"
+    ],
+    "inputTypes": [
+      "List[Int]"
+    ],
+    "returnType": "Int"
+  },
+  "oracle": {
+    "kind": "componentRef",
+    "name": "lastInList"
+  },
+  "components": [],
+  "examples": [
+    [
+      [
+        []
+      ],
+      {
+        "error": true
+      }
+    ],
+    [
+      [
+        [
+          1
+        ]
+      ],
+      1
+    ],
+    [
+      [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      3
+    ],
+    [
+      [
+        [
+          1,
+          6,
+          7,
+          11
+        ]
+      ],
+      11
+    ],
+    [
+      [
+        [
+          10,
+          25,
+          7,
+          9,
+          18
+        ]
+      ],
+      18
+    ]
+  ],
+  "category": "lists"
+}

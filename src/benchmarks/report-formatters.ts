@@ -1,0 +1,113 @@
+import type {
+  BenchmarkRunCase,
+  BenchmarkRunReport,
+} from "./harness.js";
+import {
+  type TypedEscherBenchmarkCase,
+} from "./typed-escher-benchmarks.js";
+
+export const formatBenchmarkReport = (report: BenchmarkRunReport): string => {
+  const globalCfg = report.options.synthConfig;
+  const configDiff = (row: BenchmarkRunCase): string => {
+    const diffs: string[] = [];
+    if (row.config.maxCost !== globalCfg.maxCost) {
+      diffs.push(`maxCost=${row.config.maxCost}`);
+    }
+    if (row.config.searchSizeFactor !== globalCfg.searchSizeFactor) {
+      diffs.push(`searchSizeFactor=${row.config.searchSizeFactor}`);
+    }
+    if (row.config.maxReboots !== globalCfg.maxReboots && row.config.maxReboots !== undefined) {
+      diffs.push(`maxReboots=${row.config.maxReboots}`);
+    }
+    if (row.config.goalSearchStrategy !== globalCfg.goalSearchStrategy && row.config.goalSearchStrategy !== undefined) {
+      diffs.push(`strategy=${row.config.goalSearchStrategy}`);
+    }
+    if (row.config.deleteAllErr !== globalCfg.deleteAllErr) {
+      diffs.push(`deleteAllErr=${String(row.config.deleteAllErr)}`);
+    }
+    if (row.config.timeoutMs !== globalCfg.timeoutMs) {
+      diffs.push(`timeoutMs=${row.config.timeoutMs === null ? "null" : row.config.timeoutMs}`);
+    }
+    if (row.config.useReductionRules !== globalCfg.useReductionRules && row.config.useReductionRules !== undefined) {
+      diffs.push(`useReductionRules=${String(row.config.useReductionRules)}`);
+    }
+    if (row.config.onlyForwardSearch !== globalCfg.onlyForwardSearch && row.config.onlyForwardSearch !== undefined) {
+      diffs.push(`onlyForwardSearch=${String(row.config.onlyForwardSearch)}`);
+    }
+    return diffs.length === 0 ? "" : ` [caseConfig: ${diffs.join(", ")}]`;
+  };
+
+  const categoryTitle = (category: TypedEscherBenchmarkCase["category"]): string => {
+    switch (category) {
+      case "lists":
+        return "Lists";
+      case "integers":
+        return "Integers";
+      case "trees":
+        return "Trees";
+    }
+  };
+  const order: TypedEscherBenchmarkCase["category"][] = ["lists", "integers", "trees"];
+
+  const pad = (text: string, width: number): string => (text.length >= width ? text : `${text}${" ".repeat(width - text.length)}`);
+  const lines: string[] = [];
+  lines.push(`${report.engine === "typed-escher" ? "TypedEscher" : "AscendRec"} Benchmarks: ${report.succeeded}/${report.total} succeeded`);
+  lines.push(`Duration: ${report.durationMs} ms`);
+  lines.push(
+    `Config: maxCost=${report.options.synthConfig.maxCost}, strategy=${report.options.synthConfig.goalSearchStrategy ?? "-"}, searchSizeFactor=${report.options.synthConfig.searchSizeFactor}, maxReboots=${report.options.synthConfig.maxReboots ?? "-"}, timeoutMs=${report.options.synthConfig.timeoutMs}, useReductionRules=${report.options.synthConfig.useReductionRules ?? true}, onlyForwardSearch=${report.options.synthConfig.onlyForwardSearch ?? false}`,
+  );
+  lines.push("");
+
+  for (const category of order) {
+    const rows = report.cases.filter((row) => row.category === category);
+    if (rows.length === 0) {
+      continue;
+    }
+    const succeeded = rows.filter((row) => row.success).length;
+    lines.push(`[${categoryTitle(category)}] ${succeeded}/${rows.length} succeeded`);
+    lines.push(`${pad("name", 14)} ${pad("status", 7)} ${pad("ms", 6)} ${pad("cost", 6)} ${pad("depth", 6)} reboots`);
+    for (const row of rows) {
+      lines.push(
+        `${pad(row.name, 14)} ${pad(row.success ? "OK" : "FAIL", 7)} ${pad(String(row.elapsedMs), 6)} ${pad(row.cost === null ? "-" : String(row.cost), 6)} ${pad(row.depth === null ? "-" : String(row.depth), 6)} ${row.reboots === null ? "-" : String(row.reboots)}${configDiff(row)}`,
+      );
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+};
+
+export const formatBenchmarkProgramPairs = (report: BenchmarkRunReport): string => {
+  const lines: string[] = [];
+  lines.push("# Benchmark Program Comparison");
+  lines.push("");
+  lines.push(`- Engine: ${report.engine}`);
+  lines.push("");
+  for (const row of report.cases) {
+    lines.push(`## ${row.name}`);
+    lines.push("");
+    lines.push(`- Category: ${row.category}`);
+    lines.push(`- Status: ${row.success ? "OK" : "FAIL"}`);
+    lines.push(`- Signature: \`${row.inputSpec}\``);
+    lines.push(`- Options: \`maxCost=${row.config.maxCost}, searchSizeFactor=${row.config.searchSizeFactor}, maxReboots=${row.config.maxReboots ?? "-"}, strategy=${row.config.goalSearchStrategy ?? "-"}, useReductionRules=${row.config.useReductionRules ?? true}, onlyForwardSearch=${row.config.onlyForwardSearch ?? false}, deleteAllErr=${String(row.config.deleteAllErr)}, timeoutMs=${row.config.timeoutMs}\``);
+    lines.push(`- Components (${row.components.length}): \`${row.components.join(", ")}\``);
+    lines.push("");
+    lines.push("### I/O Examples");
+    for (const ex of row.exampleSpecs) {
+      lines.push(`- \`${ex}\``);
+    }
+    lines.push("");
+    lines.push("### Oracle Program");
+    lines.push("```txt");
+    lines.push(row.oracleProgram ?? "(not provided)");
+    lines.push("```");
+    lines.push("");
+    lines.push("### Synthesized Program");
+    lines.push("```txt");
+    lines.push(row.program ?? "(failed)");
+    lines.push("```");
+    lines.push("");
+  }
+
+  return lines.join("\n");
+};

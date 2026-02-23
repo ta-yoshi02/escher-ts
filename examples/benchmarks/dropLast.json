@@ -1,0 +1,78 @@
+{
+  "name": "dropLast",
+  "componentsPreset": "dropLast",
+  "signature": {
+    "inputNames": [
+      "xs"
+    ],
+    "inputTypes": [
+      "List[Int]"
+    ],
+    "returnType": "List[Int]"
+  },
+  "oracle": {
+    "kind": "componentRef",
+    "name": "dropLast"
+  },
+  "components": [],
+  "examples": [
+    [
+      [
+        []
+      ],
+      []
+    ],
+    [
+      [
+        [
+          1
+        ]
+      ],
+      []
+    ],
+    [
+      [
+        [
+          1,
+          2
+        ]
+      ],
+      [
+        1
+      ]
+    ],
+    [
+      [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      [
+        1,
+        2
+      ]
+    ],
+    [
+      [
+        [
+          1,
+          1,
+          1,
+          2,
+          3,
+          2
+        ]
+      ],
+      [
+        1,
+        1,
+        1,
+        2,
+        3
+      ]
+    ]
+  ],
+  "category": "lists"
+}

@@ -1,0 +1,85 @@
+{
+  "name": "shiftLeft",
+  "componentsPreset": "shiftLeft",
+  "signature": {
+    "inputNames": [
+      "xs"
+    ],
+    "inputTypes": [
+      "List[Int]"
+    ],
+    "returnType": "List[Int]"
+  },
+  "oracle": {
+    "kind": "componentRef",
+    "name": "shiftLeft"
+  },
+  "components": [],
+  "examples": [
+    [
+      [
+        []
+      ],
+      []
+    ],
+    [
+      [
+        [
+          1
+        ]
+      ],
+      [
+        1
+      ]
+    ],
+    [
+      [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      [
+        3,
+        2,
+        1
+      ]
+    ],
+    [
+      [
+        [
+          1,
+          6,
+          7,
+          11
+        ]
+      ],
+      [
+        11,
+        7,
+        6,
+        1
+      ]
+    ],
+    [
+      [
+        [
+          10,
+          25,
+          7,
+          9,
+          18
+        ]
+      ],
+      [
+        18,
+        9,
+        7,
+        25,
+        10
+      ]
+    ]
+  ],
+  "category": "lists"
+}

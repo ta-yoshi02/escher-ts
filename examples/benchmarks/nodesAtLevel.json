@@ -1,0 +1,271 @@
+{
+  "name": "nodesAtLevel",
+  "componentsPreset": "nodesAtLevel",
+  "signature": {
+    "inputNames": [
+      "tree",
+      "level"
+    ],
+    "inputTypes": [
+      "Tree[Int]",
+      "Int"
+    ],
+    "returnType": "List[Int]"
+  },
+  "oracle": {
+    "kind": "componentRef",
+    "name": "nodesAtLevel"
+  },
+  "components": [],
+  "examples": [
+    [
+      [
+        {
+          "tree": "leaf"
+        },
+        1
+      ],
+      []
+    ],
+    [
+      [
+        {
+          "tree": "leaf"
+        },
+        0
+      ],
+      []
+    ],
+    [
+      [
+        {
+          "tree": "leaf"
+        },
+        -1
+      ],
+      []
+    ],
+    [
+      [
+        {
+          "tree": {
+            "value": 12,
+            "left": {
+              "tree": "leaf"
+            },
+            "right": {
+              "tree": "leaf"
+            }
+          }
+        },
+        -1
+      ],
+      []
+    ],
+    [
+      [
+        {
+          "tree": {
+            "value": 12,
+            "left": {
+              "tree": "leaf"
+            },
+            "right": {
+              "tree": "leaf"
+            }
+          }
+        },
+        0
+      ],
+      [
+        12
+      ]
+    ],
+    [
+      [
+        {
+          "tree": {
+            "value": 12,
+            "left": {
+              "tree": "leaf"
+            },
+            "right": {
+              "tree": "leaf"
+            }
+          }
+        },
+        1
+      ],
+      []
+    ],
+    [
+      [
+        {
+          "tree": {
+            "value": 12,
+            "left": {
+              "tree": "leaf"
+            },
+            "right": {
+              "tree": "leaf"
+            }
+          }
+        },
+        2
+      ],
+      []
+    ],
+    [
+      [
+        {
+          "tree": {
+            "value": 12,
+            "left": {
+              "tree": {
+                "value": 7,
+                "left": {
+                  "tree": "leaf"
+                },
+                "right": {
+                  "tree": "leaf"
+                }
+              }
+            },
+            "right": {
+              "tree": {
+                "value": 9,
+                "left": {
+                  "tree": "leaf"
+                },
+                "right": {
+                  "tree": "leaf"
+                }
+              }
+            }
+          }
+        },
+        1
+      ],
+      [
+        7,
+        9
+      ]
+    ],
+    [
+      [
+        {
+          "tree": {
+            "value": 12,
+            "left": {
+              "tree": {
+                "value": 7,
+                "left": {
+                  "tree": "leaf"
+                },
+                "right": {
+                  "tree": "leaf"
+                }
+              }
+            },
+            "right": {
+              "tree": {
+                "value": 9,
+                "left": {
+                  "tree": "leaf"
+                },
+                "right": {
+                  "tree": "leaf"
+                }
+              }
+            }
+          }
+        },
+        2
+      ],
+      []
+    ],
+    [
+      [
+        {
+          "tree": {
+            "value": 12,
+            "left": {
+              "tree": {
+                "value": 15,
+                "left": {
+                  "tree": {
+                    "value": 4,
+                    "left": {
+                      "tree": "leaf"
+                    },
+                    "right": {
+                      "tree": "leaf"
+                    }
+                  }
+                },
+                "right": {
+                  "tree": "leaf"
+                }
+              }
+            },
+            "right": {
+              "tree": {
+                "value": 9,
+                "left": {
+                  "tree": "leaf"
+                },
+                "right": {
+                  "tree": "leaf"
+                }
+              }
+            }
+          }
+        },
+        3
+      ],
+      []
+    ],
+    [
+      [
+        {
+          "tree": {
+            "value": 15,
+            "left": {
+              "tree": {
+                "value": 15,
+                "left": {
+                  "tree": {
+                    "value": 4,
+                    "left": {
+                      "tree": "leaf"
+                    },
+                    "right": {
+                      "tree": "leaf"
+                    }
+                  }
+                },
+                "right": {
+                  "tree": "leaf"
+                }
+              }
+            },
+            "right": {
+              "tree": {
+                "value": 9,
+                "left": {
+                  "tree": "leaf"
+                },
+                "right": {
+                  "tree": "leaf"
+                }
+              }
+            }
+          }
+        },
+        4
+      ],
+      []
+    ]
+  ],
+  "category": "trees"
+}

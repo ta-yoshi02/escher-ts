@@ -12,11 +12,11 @@ export const benchmarkReportToCsv = (report: BenchmarkRunReport): string => {
 };
 
 export const benchmarkReportToSvg = (report: BenchmarkRunReport): string => {
-  const height = 560;
+  const height = 600;
   const marginLeft = 96;
   const marginRight = 30;
   const marginTop = 50;
-  const marginBottom = 210;
+  const marginBottom = 100;
 
   const categoryOrder = ["lists", "integers", "trees", "classes"] as const;
   const groups = categoryOrder
@@ -61,7 +61,8 @@ export const benchmarkReportToSvg = (report: BenchmarkRunReport): string => {
       bars.push(`<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" fill="${color}" />`);
 
       const lx = marginLeft + cursor * barArea + barArea / 2;
-      const labelY = marginTop + chartHeight + 18;
+      // Push benchmark-name labels further below the bars/axis.
+      const labelY = marginTop + chartHeight + 38;
       const name = esc(row.name);
       labels.push(`<text x="${lx.toFixed(2)}" y="${labelY.toFixed(2)}" text-anchor="middle" font-size="10" transform="rotate(55 ${lx.toFixed(2)} ${labelY.toFixed(2)})">${name}</text>`);
 
@@ -71,7 +72,7 @@ export const benchmarkReportToSvg = (report: BenchmarkRunReport): string => {
     }
     const groupEnd = cursor;
     const gx = marginLeft + ((groupStart + groupEnd) / 2) * barArea;
-    const groupLabelY = marginTop + chartHeight + 128;
+    const groupLabelY = Math.min(height - 12, marginTop + chartHeight + Math.max(44, marginBottom - 18));
     groupLabels.push(`<text x="${gx.toFixed(2)}" y="${groupLabelY.toFixed(2)}" text-anchor="middle" font-size="12" font-weight="600">${categoryTitle(group.category)}</text>`);
     if (groupIdx < groups.length - 1) {
       const sx = marginLeft + cursor * barArea + (categoryGapUnits * barArea) / 2;
@@ -86,7 +87,7 @@ export const benchmarkReportToSvg = (report: BenchmarkRunReport): string => {
       const v = Math.round(maxElapsed * p);
       return `
 <line x1="${marginLeft}" y1="${y.toFixed(2)}" x2="${width - marginRight}" y2="${y.toFixed(2)}" stroke="#e5e7eb" />
-<text x="${marginLeft - 12}" y="${(y + 11).toFixed(2)}" text-anchor="end" font-size="10">${v}</text>`;
+<text x="${marginLeft - 12}" y="${(y + 4).toFixed(2)}" text-anchor="end" font-size="10">${v}</text>`;
     })
     .join("\n");
   const engineLabel = report.engine === "typed-escher" ? "TypedEscher" : "AscendRec";

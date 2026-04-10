@@ -4,19 +4,23 @@ import {
   compressRef,
   createCommonComponentEnv,
   createCommonComponentEnvByDomain,
+  findByValueRef,
   getBenchmarkPresetComponents,
   getCommonComponents,
   getCommonComponentsByDomain,
   isNull,
+  last_ptr,
   listBenchmarkComponentPresets,
   listCommonComponentDomains,
   listCommonComponentSets,
+  nthNextRef,
   reverseRef,
   stutterRef,
   valueBool,
   valueInt,
-  valueRef,
   valueList,
+  valueObject,
+  valueRef,
 } from "../../../src/index.js";
 
 describe("common comps", () => {
@@ -54,10 +58,11 @@ describe("common comps", () => {
   });
 
   it("exposes domain-oriented component APIs", () => {
-    expect(listCommonComponentDomains()).toEqual(["lists", "integers", "trees"]);
+    expect(listCommonComponentDomains()).toEqual(["lists", "integers", "trees", "heaps"]);
     expect(getCommonComponentsByDomain("lists").length).toBeGreaterThan(0);
     const env = createCommonComponentEnvByDomain("integers");
     expect(env.has("plus")).toBe(true);
+    expect(createCommonComponentEnvByDomain("heaps").has("last_ptr")).toBe(true);
   });
 
   it("exposes benchmark-oriented minimal presets", () => {
@@ -66,5 +71,42 @@ describe("common comps", () => {
     expect(reverseSet.some((c) => c.name === "concat")).toBe(true);
     const env = createBenchmarkPresetEnv("nodesAtLevel");
     expect(env.has("treeLeft")).toBe(true);
+  });
+
+  it("last_ptr returns the tail reference from a next-heap", () => {
+    const out = last_ptr.executeEfficient([
+      valueRef(0),
+      valueList([valueRef(1), valueRef(2), valueRef(-1)]),
+    ]);
+    expect(out).toEqual(valueRef(2));
+  });
+
+  it("nthNextRef walks forward over a heap-backed next field", () => {
+    const nodeHeap = valueList([
+      valueObject("Node", {}),
+      valueObject("Node", {}),
+      valueObject("Node", {}),
+    ]);
+    const nextHeap = valueList([valueRef(1), valueRef(2), valueRef(-1)]);
+    const out = nthNextRef.executeEfficient([valueRef(0), nodeHeap, nextHeap, valueInt(2)]);
+    expect(out).toEqual(valueRef(2));
+  });
+
+  it("findByValueRef locates the first matching node by value heap", () => {
+    const nodeHeap = valueList([
+      valueObject("Node", {}),
+      valueObject("Node", {}),
+      valueObject("Node", {}),
+    ]);
+    const nextHeap = valueList([valueRef(1), valueRef(2), valueRef(-1)]);
+    const valueHeap = valueList([valueInt(10), valueInt(42), valueInt(7)]);
+    const out = findByValueRef.executeEfficient([
+      valueRef(0),
+      nodeHeap,
+      nextHeap,
+      valueHeap,
+      valueInt(42),
+    ]);
+    expect(out).toEqual(valueRef(1));
   });
 });

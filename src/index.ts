@@ -15,4 +15,3 @@ export * from "./library/common-comps.js";
 export * from "./benchmarks/typed-escher-benchmarks.js";
 export * from "./benchmarks/harness.js";
 export * from "./benchmarks/report-chart.js";
-export * from "./refsyn.js";

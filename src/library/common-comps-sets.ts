@@ -47,7 +47,6 @@ import {
   sumUnderRef,
   times,
 } from "./common-comps-int.js";
-import { findByValueRef, nthNextRef } from "./common-comps-refsyn.js";
 import {
   createLeaf,
   createNode,
@@ -142,16 +141,10 @@ export const treeDomainComponents = [
   tConcatRef,
 ] as const;
 
-export const refsynDomainComponents = [
-  nthNextRef,
-  findByValueRef,
-] as const;
-
 const commonComponentDomains = {
   lists: listDomainComponents,
   integers: integerDomainComponents,
   trees: treeDomainComponents,
-  refsyn: refsynDomainComponents,
 } as const satisfies Readonly<Record<string, readonly ComponentImpl[]>>;
 
 export type CommonComponentDomainName = keyof typeof commonComponentDomains;
@@ -229,7 +222,6 @@ export {
   fComp,
   fibRef,
   flattenTreeRef,
-  findByValueRef,
   head,
   inc,
   insertRef,
@@ -245,7 +237,6 @@ export {
   modulo,
   neg,
   nil,
-  nthNextRef,
   nodesAtLevelRef,
   notComp,
   orComp,

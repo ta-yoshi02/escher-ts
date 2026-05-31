@@ -14,6 +14,7 @@ import {
   listCommonComponentDomains,
   listCommonComponentSets,
   nthNextRef,
+  penultimateRef,
   reverseRef,
   stutterRef,
   valueBool,
@@ -63,6 +64,7 @@ describe("common comps", () => {
     const env = createCommonComponentEnvByDomain("integers");
     expect(env.has("plus")).toBe(true);
     expect(createCommonComponentEnvByDomain("heaps").has("last_ptr")).toBe(true);
+    expect(createCommonComponentEnvByDomain("heaps").has("penultimateRef")).toBe(true);
   });
 
   it("exposes benchmark-oriented minimal presets", () => {
@@ -79,6 +81,16 @@ describe("common comps", () => {
       valueList([valueRef(1), valueRef(2), valueRef(-1)]),
     ]);
     expect(out).toEqual(valueRef(2));
+  });
+
+  it("penultimateRef returns the predecessor of the tail from a next-heap", () => {
+    const out = penultimateRef.executeEfficient([
+      valueRef(0),
+      valueList([valueRef(1), valueRef(2), valueRef(-1)]),
+    ]);
+    expect(out).toEqual(valueRef(1));
+    const tooShort = penultimateRef.executeEfficient([valueRef(0), valueList([valueRef(-1)])]);
+    expect(tooShort).toEqual(valueRef(-1));
   });
 
   it("nthNextRef walks forward over a heap-backed next field", () => {

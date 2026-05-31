@@ -50,6 +50,50 @@ export const last_ptr = new ComponentImpl(
   },
 );
 
+export const penultimateRef = new ComponentImpl(
+  "penultimateRef",
+  [tyRef(typeVar(0)), tyList(typeVar(0))],
+  tyRef(typeVar(0)),
+  (args) => {
+    const start = asRef(args[0]!);
+    const nextHeap = asList(args[1]!);
+    if (start === null || nextHeap === null) {
+      return valueError;
+    }
+    if (start === -1) {
+      return valueRef(-1);
+    }
+
+    const seen = new Set<number>();
+    let current = start;
+    while (current !== -1) {
+      if (!isValidIndex(current, nextHeap.length) || seen.has(current)) {
+        return valueError;
+      }
+      seen.add(current);
+      const next = readRefEntry(nextHeap, current);
+      if (next === null) {
+        return valueError;
+      }
+      if (next === -1) {
+        return valueRef(-1);
+      }
+      if (!isValidIndex(next, nextHeap.length)) {
+        return valueError;
+      }
+      const nextNext = readRefEntry(nextHeap, next);
+      if (nextNext === null) {
+        return valueError;
+      }
+      if (nextNext === -1) {
+        return valueRef(current);
+      }
+      current = next;
+    }
+    return valueRef(-1);
+  },
+);
+
 export const nthNextRef = new ComponentImpl(
   "nthNextRef",
   [tyRef(typeVar(0)), tyList(typeVar(0)), tyList(typeVar(0)), tyInt],

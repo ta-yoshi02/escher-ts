@@ -47,7 +47,14 @@ import {
   sumUnderRef,
   times,
 } from "./common-comps-int.js";
-import { findByValueRef, last_ptr, nthNextRef, penultimateRef } from "./common-comps-heap.js";
+import {
+  findByValueRef,
+  freshRefFromHeap,
+  last_ptr,
+  nthNextRef,
+  penultimateRef,
+  storeAtRef,
+} from "./common-comps-heap.js";
 import {
   createLeaf,
   createNode,
@@ -143,6 +150,8 @@ export const treeDomainComponents = [
 ] as const;
 
 export const heapDomainComponents = [
+  storeAtRef,
+  freshRefFromHeap,
   last_ptr,
   penultimateRef,
   nthNextRef,
@@ -260,6 +269,7 @@ export {
   standardListComponents,
   stutterRef,
   sumUnderRef,
+  storeAtRef,
   tComp,
   tConcatRef,
   tail,

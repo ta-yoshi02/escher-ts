@@ -1,6 +1,6 @@
 import { ComponentImpl } from "../components/component.js";
 import { tyInt, tyList, tyRef, typeVar } from "../types/type.js";
-import { type TermValue, valueError, valueRef } from "../types/value.js";
+import { type TermValue, valueError, valueList, valueRef } from "../types/value.js";
 import { asInt, asList, asRef } from "./common-comps-helpers.js";
 
 const isValidIndex = (index: number, size: number): boolean => index >= 0 && index < size;
@@ -14,6 +14,33 @@ const readIntEntry = (heap: readonly TermValue[], index: number): number | null 
   const entry = heap[index];
   return entry !== undefined && entry.tag === "int" ? entry.value : null;
 };
+
+export const storeAtRef = new ComponentImpl(
+  "storeAtRef",
+  [tyList(typeVar(0)), tyRef(typeVar(1)), typeVar(0)],
+  tyList(typeVar(0)),
+  (args) => {
+    const heap = asList(args[0]!);
+    const ref = asRef(args[1]!);
+    const value = args[2];
+    if (heap === null || ref === null || value === undefined || !isValidIndex(ref, heap.length)) {
+      return valueError;
+    }
+    const updated = [...heap];
+    updated[ref] = value;
+    return valueList(updated);
+  },
+);
+
+export const freshRefFromHeap = new ComponentImpl(
+  "freshRefFromHeap",
+  [tyList(typeVar(0))],
+  tyRef(typeVar(0)),
+  (args) => {
+    const heap = asList(args[0]!);
+    return heap === null ? valueError : valueRef(heap.length);
+  },
+);
 
 export const last_ptr = new ComponentImpl(
   "last_ptr",

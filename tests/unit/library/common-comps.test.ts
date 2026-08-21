@@ -5,6 +5,7 @@ import {
   createCommonComponentEnv,
   createCommonComponentEnvByDomain,
   findByValueRef,
+  freshRefFromHeap,
   getBenchmarkPresetComponents,
   getCommonComponents,
   getCommonComponentsByDomain,
@@ -17,6 +18,7 @@ import {
   penultimateRef,
   reverseRef,
   stutterRef,
+  storeAtRef,
   valueBool,
   valueInt,
   valueList,
@@ -46,6 +48,24 @@ describe("common comps", () => {
     expect(isNull.executeEfficient([valueRef(42)])).toEqual(valueBool(false));
   });
 
+  it("storeAtRef replaces the fixed-ID slot without mutating the input heap", () => {
+    const input = valueList([valueInt(10), valueInt(20), valueInt(30)]);
+    const out = storeAtRef.executeEfficient([input, valueRef(1), valueInt(99)]);
+    expect(out).toEqual(valueList([valueInt(10), valueInt(99), valueInt(30)]));
+    expect(input).toEqual(valueList([valueInt(10), valueInt(20), valueInt(30)]));
+  });
+
+  it("storeAtRef rejects null and out-of-range references", () => {
+    const heap = valueList([valueInt(10)]);
+    expect(storeAtRef.executeEfficient([heap, valueRef(-1), valueInt(99)]).tag).toBe("error");
+    expect(storeAtRef.executeEfficient([heap, valueRef(1), valueInt(99)]).tag).toBe("error");
+  });
+
+  it("freshRefFromHeap returns the next fixed object ID", () => {
+    const heap = valueList([valueObject("Node", {}), valueObject("Node", {})]);
+    expect(freshRefFromHeap.executeEfficient([heap])).toEqual(valueRef(2));
+  });
+
   it("exposes named common component sets for external composition", () => {
     expect(listCommonComponentSets()).toEqual([
       "standard-list",
@@ -65,6 +85,8 @@ describe("common comps", () => {
     expect(env.has("plus")).toBe(true);
     expect(createCommonComponentEnvByDomain("heaps").has("last_ptr")).toBe(true);
     expect(createCommonComponentEnvByDomain("heaps").has("penultimateRef")).toBe(true);
+    expect(createCommonComponentEnvByDomain("heaps").has("storeAtRef")).toBe(true);
+    expect(createCommonComponentEnvByDomain("heaps").has("freshRefFromHeap")).toBe(true);
   });
 
   it("exposes benchmark-oriented minimal presets", () => {

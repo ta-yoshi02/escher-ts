@@ -28,6 +28,7 @@ yarn-error.log*
 
 # caches
 .cache/
+.serena/
 .tmp/
 tmp/
 .eslintcache

@@ -20,6 +20,7 @@ import {
   stutterRef,
   storeAtRef,
   valueBool,
+  valueError,
   valueInt,
   valueList,
   valueObject,
@@ -142,5 +143,18 @@ describe("common comps", () => {
       valueInt(42),
     ]);
     expect(out).toEqual(valueRef(1));
+  });
+
+  it("findByValueRef passes over a node whose value is undefined, as `undefined === k` does in JS", () => {
+    const nodeHeap = valueList([valueObject("Node", {}), valueObject("Node", {}), valueObject("Node", {})]);
+    const nextHeap = valueList([valueRef(1), valueRef(2), valueRef(-1)]);
+    const valueHeap = valueList([valueError, valueInt(42), valueError]);
+    const find = (target: number) =>
+      findByValueRef.executeEfficient([valueRef(0), nodeHeap, nextHeap, valueHeap, valueInt(target)]);
+    expect(find(42)).toEqual(valueRef(1));
+    expect(find(7)).toEqual(valueRef(-1));
+    // A malformed entry is still an error.
+    const malformed = valueList([valueRef(0), valueInt(42), valueInt(7)]);
+    expect(findByValueRef.executeEfficient([valueRef(0), nodeHeap, nextHeap, malformed, valueInt(42)])).toEqual(valueError);
   });
 });

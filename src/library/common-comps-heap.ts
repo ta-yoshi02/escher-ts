@@ -193,12 +193,15 @@ export const findByValueRef = new ComponentImpl(
         return valueError;
       }
 
-      const currentValue = readIntEntry(valueHeap, current);
-      if (currentValue === null) {
-        return valueError;
-      }
-      if (currentValue === target) {
-        return valueRef(current);
+      // An undefined or absent value is never equal to the target in JS, so the node is passed over.
+      if (valueHeap[current]!.tag !== "error") {
+        const currentValue = readIntEntry(valueHeap, current);
+        if (currentValue === null) {
+          return valueError;
+        }
+        if (currentValue === target) {
+          return valueRef(current);
+        }
       }
 
       const next = readRefEntry(nextHeap, current);

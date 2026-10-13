@@ -4,6 +4,7 @@ import {
   compressRef,
   createCommonComponentEnv,
   createCommonComponentEnvByDomain,
+  equal,
   findByValueRef,
   freshRefFromHeap,
   getBenchmarkPresetComponents,
@@ -156,5 +157,21 @@ describe("common comps", () => {
     // A malformed entry is still an error.
     const malformed = valueList([valueRef(0), valueInt(42), valueInt(7)]);
     expect(findByValueRef.executeEfficient([valueRef(0), nodeHeap, nextHeap, malformed, valueInt(42)])).toEqual(valueError);
+  });
+
+  it("findByValueRef fails on a cycle that does not hold the target", () => {
+    const nodeHeap = valueList([valueObject("Node", {}), valueObject("Node", {})]);
+    const nextHeap = valueList([valueRef(1), valueRef(0)]);
+    const valueHeap = valueList([valueInt(1), valueInt(2)]);
+    const find = (target: number) =>
+      findByValueRef.executeEfficient([valueRef(0), nodeHeap, nextHeap, valueHeap, valueInt(target)]);
+    expect(find(2)).toEqual(valueRef(1));
+    expect(find(3)).toEqual(valueError);
+  });
+
+  it("equal fails when either argument is an error (call by value)", () => {
+    expect(equal.executeEfficient([valueError, valueError])).toEqual(valueError);
+    expect(equal.executeEfficient([valueError, valueRef(-1)])).toEqual(valueError);
+    expect(equal.executeEfficient([valueRef(-1), valueRef(-1)])).toEqual(valueBool(true));
   });
 });

@@ -406,7 +406,7 @@ describe("user-friendly JSON spec", () => {
     const job = prepareJsonSynthesisJob(spec);
     const [args] = job.examples[0]!;
     expect(job.env.get("valOf")?.executeEfficient(args)).toEqual(valueError);
-    expect(job.env.get("hasVal")?.executeEfficient(args)).toEqual(valueError);
+    expect(job.env.get("hasVal")?.executeEfficient(args)).toEqual(valueBool(false));
     const defined = [valueRef(1), args[1]!, args[2]!];
     expect(job.env.get("valOf")?.executeEfficient(defined)).toEqual(valueRef(1));
     expect(job.env.get("hasVal")?.executeEfficient(defined)).toEqual(valueBool(true));

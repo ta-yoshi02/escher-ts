@@ -755,8 +755,10 @@ const buildAutoClassFieldComponentDefs = (
           }
           const out = accessField(args);
           if (fieldRefTarget !== null) {
+            // An integer field's test asks whether it holds a value, so an undefined or absent value
+            // answers false, as `receiver.field !== undefined` does; a reference has no such answer.
             if (out.tag === "error") {
-              return valueError;
+              return fieldTargetClassName === null && receiverObject(args) !== null ? valueBool(false) : valueError;
             }
             return out.tag === "ref" && out.value !== -1 ? valueBool(true) : valueBool(false);
           }

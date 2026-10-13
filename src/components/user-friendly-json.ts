@@ -69,6 +69,9 @@ export interface JsonSynthesisSpec {
   readonly classes?: readonly JsonClassSpec[];
   readonly exposeClassComponents?: boolean;
   readonly autoClassFieldComponents?: boolean;
+  // Field components fail on a null, error or malformed receiver instead of yielding null/false,
+  // as `receiver.field` does in JS. Off by default, where such reads are null-safe.
+  readonly strictFieldAccess?: boolean;
   // Backward compatibility: prefer signature.fixedClassRecursivePattern.
   readonly fixedClassRecursivePattern?: boolean;
   // Backward compatibility: prefer signature.recursiveInvariantArgNames.
@@ -283,6 +286,7 @@ const ensureSpecShape = (value: unknown): JsonSynthesisSpec => {
     typeof record.exposeClassComponents === "boolean" ? record.exposeClassComponents : undefined;
   const autoClassFieldComponents =
     typeof record.autoClassFieldComponents === "boolean" ? record.autoClassFieldComponents : undefined;
+  const strictFieldAccess = typeof record.strictFieldAccess === "boolean" ? record.strictFieldAccess : undefined;
   const componentsPreset = typeof record.componentsPreset === "string" ? record.componentsPreset : undefined;
   const fixedClassRecursivePattern =
     typeof record.fixedClassRecursivePattern === "boolean" ? record.fixedClassRecursivePattern : undefined;
@@ -343,6 +347,7 @@ const ensureSpecShape = (value: unknown): JsonSynthesisSpec => {
     ...(classes !== undefined ? { classes } : {}),
     ...(exposeClassComponents !== undefined ? { exposeClassComponents } : {}),
     ...(autoClassFieldComponents !== undefined ? { autoClassFieldComponents } : {}),
+    ...(strictFieldAccess !== undefined ? { strictFieldAccess } : {}),
     ...(fixedClassRecursivePattern !== undefined ? { fixedClassRecursivePattern } : {}),
     ...(recursiveInvariantArgNames !== undefined ? { recursiveInvariantArgNames } : {}),
     ...(componentsPreset !== undefined ? { componentsPreset } : {}),
@@ -671,20 +676,25 @@ const buildAutoClassFieldComponentDefs = (
     const fieldHeapType = fieldHeapIndex === undefined ? null : signature.inputTypes[fieldHeapIndex]!;
     const componentInputTypes =
       fieldHeapType === null ? [receiverType, objectHeapType] : [receiverType, objectHeapType, fieldHeapType];
-    const invalidValue = fieldRefTarget === null ? valueError : valueRef(-1);
-
-    const accessField = (args: readonly TermValue[]): TermValue => {
+    const strict = spec.strictFieldAccess === true;
+    const invalidValue = strict || fieldRefTarget === null ? valueError : valueRef(-1);
+    const receiverObject = (args: readonly TermValue[]) => {
       const thisArg = args[0];
       const heapArg = args[1];
       if (thisArg === undefined || thisArg.tag !== "ref" || heapArg === undefined || heapArg.tag !== "list") {
-        return invalidValue;
+        return null;
       }
       const idx = thisArg.value;
       if (idx < 0 || idx >= heapArg.elems.length) {
-        return invalidValue;
+        return null;
       }
       const node = heapArg.elems[idx];
-      if (node === undefined || node.tag !== "object" || node.className !== receiverClassName) {
+      return node === undefined || node.tag !== "object" || node.className !== receiverClassName ? null : node;
+    };
+
+    const accessField = (args: readonly TermValue[]): TermValue => {
+      const node = receiverObject(args);
+      if (node === null) {
         return invalidValue;
       }
       const fieldValue = node.fields[fieldName];
@@ -740,6 +750,9 @@ const buildAutoClassFieldComponentDefs = (
         inputTypes: componentInputTypes,
         returnType: tyBool,
         impl: (args) => {
+          if (strict && receiverObject(args) === null) {
+            return valueError;
+          }
           const out = accessField(args);
           if (fieldRefTarget !== null) {
             if (out.tag === "error") {

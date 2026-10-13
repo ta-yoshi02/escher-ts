@@ -646,3 +646,47 @@ describe("user-friendly JSON spec", () => {
     );
   });
 });
+
+describe("strictFieldAccess", () => {
+  const job = (strict: boolean | undefined) =>
+    prepareJsonSynthesisJob(
+      parseJsonSynthesisSpec(
+        JSON.stringify({
+          name: "dummy",
+          classes: [{ name: "Node", fields: { next: "Ref[Node]", val: "Ref[Int]" } }],
+          exposeClassComponents: false,
+          autoClassFieldComponents: true,
+          ...(strict === undefined ? {} : { strictFieldAccess: strict }),
+          signature: {
+            inputNames: ["thisRef", "nodeHeap", "nextHeap", "valHeap"],
+            inputTypes: ["Ref[Node]", "List[Node]", "List[Node]", "List[Int]"],
+            returnType: "Ref[Node]",
+          },
+          components: [],
+          examples: [[[{ ref: -1 }, [{ object: { className: "Node", fields: { next: { ref: -1 }, val: { ref: 0 } } } }],
+            [{ ref: -1 }, 5], [5]], { ref: -1 }]],
+        }),
+      ),
+    );
+  const atNull = (strict: boolean | undefined, name: string, heap: "nextHeap" | "valHeap") => {
+    const prepared = job(strict);
+    const [args] = prepared.examples[0]!;
+    const heapArg = args[prepared.inputNames.indexOf(heap)]!;
+    return prepared.env.get(name)?.executeEfficient([valueRef(-1), args[1]!, heapArg]);
+  };
+
+  it("fails on a null receiver, as receiver.field does in JS", () => {
+    expect(atNull(true, "nextOf", "nextHeap")).toEqual(valueError);
+    expect(atNull(true, "hasNext", "nextHeap")).toEqual(valueError);
+    expect(atNull(true, "valOf", "valHeap")).toEqual(valueError);
+    expect(atNull(true, "hasVal", "valHeap")).toEqual(valueError);
+  });
+
+  it("keeps null-safe reads when it is off", () => {
+    for (const strict of [undefined, false]) {
+      expect(atNull(strict, "nextOf", "nextHeap")).toEqual(valueRef(-1));
+      expect(atNull(strict, "hasNext", "nextHeap")).toEqual(valueBool(false));
+      expect(atNull(strict, "hasVal", "valHeap")).toEqual(valueBool(false));
+    }
+  });
+});

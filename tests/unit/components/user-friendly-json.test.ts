@@ -344,6 +344,74 @@ describe("user-friendly JSON spec", () => {
     expect(job.env.get("nextOf")?.executeEfficient(nullThisArgs)).toEqual(valueRef(-1));
   });
 
+  it("reads an undefined reference slot as the error value rather than null", () => {
+    const spec = parseJsonSynthesisSpec(`{
+      "name": "dummy",
+      "classes": [{ "name": "Node", "fields": { "next": "Ref[Node]" } }],
+      "exposeClassComponents": false,
+      "autoClassFieldComponents": true,
+      "signature": {
+        "inputNames": ["thisRef", "nodeHeap", "nextHeap"],
+        "inputTypes": ["Ref[Node]", "List[Node]", "List[Node]"],
+        "returnType": "Ref[Node]"
+      },
+      "components": [],
+      "examples": [[
+        [
+          { "ref": 0 },
+          [
+            { "object": { "className": "Node", "fields": { "next": { "error": true } } } },
+            { "object": { "className": "Node", "fields": { "next": { "ref": -1 } } } }
+          ],
+          [{ "error": true }, { "ref": -1 }]
+        ],
+        { "ref": 0 }
+      ]]
+    }`);
+
+    const job = prepareJsonSynthesisJob(spec);
+    const [args] = job.examples[0]!;
+    expect(job.env.get("nextOf")?.executeEfficient(args)).toEqual(valueError);
+    expect(job.env.get("hasNext")?.executeEfficient(args)).toEqual(valueError);
+    const nullNext = [valueRef(1), args[1]!, args[2]!];
+    expect(job.env.get("nextOf")?.executeEfficient(nullNext)).toEqual(valueRef(-1));
+    expect(job.env.get("hasNext")?.executeEfficient(nullNext)).toEqual(valueBool(false));
+  });
+
+  it("reads an undefined integer slot as the error value", () => {
+    const spec = parseJsonSynthesisSpec(`{
+      "name": "dummy",
+      "classes": [{ "name": "Node", "fields": { "val": "Ref[Int]" } }],
+      "exposeClassComponents": false,
+      "autoClassFieldComponents": true,
+      "signature": {
+        "inputNames": ["thisRef", "nodeHeap", "valHeap"],
+        "inputTypes": ["Ref[Node]", "List[Node]", "List[Int]"],
+        "returnType": "Ref[Node]"
+      },
+      "components": [],
+      "examples": [[
+        [
+          { "ref": 0 },
+          [
+            { "object": { "className": "Node", "fields": { "val": { "ref": 0 } } } },
+            { "object": { "className": "Node", "fields": { "val": { "ref": 1 } } } }
+          ],
+          [{ "error": true }, 5]
+        ],
+        { "ref": 0 }
+      ]]
+    }`);
+
+    const job = prepareJsonSynthesisJob(spec);
+    const [args] = job.examples[0]!;
+    expect(job.env.get("valOf")?.executeEfficient(args)).toEqual(valueError);
+    expect(job.env.get("hasVal")?.executeEfficient(args)).toEqual(valueError);
+    const defined = [valueRef(1), args[1]!, args[2]!];
+    expect(job.env.get("valOf")?.executeEfficient(defined)).toEqual(valueRef(1));
+    expect(job.env.get("hasVal")?.executeEfficient(defined)).toEqual(valueBool(true));
+  });
+
   it("auto-expands class signatures and default invariant args", () => {
     const spec = parseJsonSynthesisSpec(`{
       "name": "autoSig",

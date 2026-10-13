@@ -695,6 +695,10 @@ const buildAutoClassFieldComponentDefs = (
       if (fieldRefTarget === null) {
         return fieldValue;
       }
+      // An undefined or absent reference slot is not null; reading it must not succeed.
+      if (fieldValue.tag === "error") {
+        return valueError;
+      }
       if (fieldValue.tag !== "ref") {
         return invalidValue;
       }
@@ -709,6 +713,11 @@ const buildAutoClassFieldComponentDefs = (
         }
         if (fieldValue.value < 0 || fieldValue.value >= fieldHeap.elems.length) {
           return invalidValue;
+        }
+        // A value field's slot points at its own heap entry, which is the error value when
+        // the field is undefined or absent; a reference to it would read as a defined value.
+        if (fieldTargetClassName === null && fieldHeap.elems[fieldValue.value]!.tag === "error") {
+          return valueError;
         }
       } else if (fieldTargetClassName === null && fieldValue.value < 0) {
         return invalidValue;
@@ -733,6 +742,9 @@ const buildAutoClassFieldComponentDefs = (
         impl: (args) => {
           const out = accessField(args);
           if (fieldRefTarget !== null) {
+            if (out.tag === "error") {
+              return valueError;
+            }
             return out.tag === "ref" && out.value !== -1 ? valueBool(true) : valueBool(false);
           }
           return out.tag === "error" ? valueBool(false) : valueBool(true);

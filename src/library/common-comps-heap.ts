@@ -180,8 +180,10 @@ export const findByValueRef = new ComponentImpl(
     const seen = new Set<number>();
     let current = start;
     while (current !== -1) {
+      // A cycle without the target has no answer; like last_ptr, this fails instead of
+      // claiming that the value is absent.
       if (seen.has(current)) {
-        return valueRef(-1);
+        return valueError;
       }
       seen.add(current);
 
